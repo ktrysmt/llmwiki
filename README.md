@@ -10,6 +10,15 @@ Built on [Andrej Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/4
 
 - Python >= 3.12
 
+## Installation
+
+As a plugin (all skills are installed together):
+
+```
+/plugin marketplace add https://github.com/ktrysmt/claude-plugins.git
+/plugin install llmwiki@ktrysmt
+```
+
 ## Structure
 
 ```
@@ -119,15 +128,6 @@ When resolving genuine contradictions, presents priority candidates based on sou
 ```
 
 Combines wiki knowledge to generate structured documents on a specified theme.
-
-## Installation
-
-As a plugin (all skills are installed together):
-
-```
-/plugin marketplace add ktrysmt/claude-plugins
-/plugin install llmwiki@ktrysmt
-```
 
 ## Rules
 

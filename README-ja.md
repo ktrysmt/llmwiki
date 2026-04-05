@@ -10,6 +10,15 @@
 
 - Python >= 3.12
 
+## インストール
+
+プラグインとして（全スキルが一括でインストールされる）:
+
+```
+/plugin marketplace add https://github.com/ktrysmt/claude-plugins.git
+/plugin install llmwiki@ktrysmt
+```
+
 ## 構成
 
 ```
@@ -119,15 +128,6 @@ genuine 型の矛盾解決時は source_type の信頼度順序（primary > seco
 ```
 
 Wikiの知識を組み合わせ、テーマ指定の構造化ドキュメントを生成する。
-
-## インストール
-
-プラグインとして（全スキルが一括でインストールされる）:
-
-```
-/plugin marketplace add ktrysmt/claude-plugins
-/plugin install llmwiki@ktrysmt
-```
 
 ## ルール
 
