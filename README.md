@@ -138,3 +138,26 @@ As a plugin (all skills are installed together):
 - source_type trust order: primary > secondary > derived. Determined from both path and content
 - /llmwiki:metabolize, /llmwiki:lint demotion/promotion, and /llmwiki:query feedback require human approval
 - All skill operations are recorded chronologically in `.llmwiki/log.md`
+
+## `.llmwiki/` Management
+
+`.llmwiki/` is not a conventional build artifact. Phase 1 (LLM ingestion) involves non-deterministic judgments -- `source_type` classification, entity extraction, contradiction detection -- so the same input files may produce different wiki states across runs. Unlike `_site/` or `node_modules/`, `.llmwiki/` cannot be reliably reproduced from inputs alone.
+
+### Pattern A: Git-tracked (recommended for teams)
+
+Track `.llmwiki/` in git when humans run skills directly. This ensures:
+
+- Stable wiki state shared across team members
+- Rollback via `git checkout` / `git revert`
+- Reproducible `/llmwiki:docs` output pinned to a specific commit
+- Consistent `/llmwiki:metabolize` resolution history
+
+### Pattern B: CI cache (for CI-only workflows)
+
+When skills run exclusively in CI (e.g., GitHub Actions), `.llmwiki/` can be managed as a CI cache instead of being committed to git:
+
+- Use `actions/cache` keyed on input file hashes for incremental processing (SHA-256 comparison)
+- Maintain a persistent backup (e.g., S3) as a fallback for cache eviction
+- Note: cache eviction triggers a full rebuild, which may produce different wiki states due to LLM non-determinism
+
+Choose Pattern A unless you have a dedicated CI pipeline that is the sole executor of llmwiki skills.
