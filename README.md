@@ -137,6 +137,33 @@ When resolving genuine contradictions, presents priority candidates based on sou
 
 Combines wiki knowledge to generate structured documents on a specified theme.
 
+#### Bulk generation with Agent Teams
+
+`/llmwiki:docs` generates a single document per invocation. When you need multiple documents at once -- for example, per-environment or per-product architecture docs -- instruct Claude Code to use Agent Teams for parallel generation:
+
+```
+Run /llmwiki:docs for each of the following themes in parallel
+using Agent Teams, and save each to docs/:
+
+- Production productA architecture
+- Production productB architecture
+- Test environment overview
+- Deployment procedures
+```
+
+Claude Code will create a team with one member per theme. Each member independently reads the wiki, generates a document, and writes it to the specified path. This approach is useful when your wiki covers a tree-shaped domain such as:
+
+```
+production/
+  productA/  (EC2, RDS, ...)
+  productB/  (ECS, ElastiCache, ...)
+test/
+  productA/
+  productB/
+```
+
+No additional skills or configuration are needed -- the flexibility comes from the LLM interpreting your instructions.
+
 ## Configuration
 
 Settings are stored in `.llmwiki/config.json` (created automatically on first `/llmwiki:make` run). Edit this file directly to customize behavior.

@@ -137,6 +137,33 @@ genuine 型の矛盾解決時は source_type の信頼度順序（primary > seco
 
 Wikiの知識を組み合わせ、テーマ指定の構造化ドキュメントを生成する。
 
+#### Agent Teams によるバルク生成
+
+`/llmwiki:docs` は1回の実行で1ドキュメントを生成する。環境別・プロダクト別など複数ドキュメントを一括で必要とする場合は、Agent Teams による並列生成を指示する:
+
+```
+以下のテーマそれぞれについて /llmwiki:docs を実行し、
+Agent Teams で並列に処理して docs/ に保存してください:
+
+- Production productA アーキテクチャ
+- Production productB アーキテクチャ
+- Test環境 構成概要
+- デプロイ手順書
+```
+
+Claude Code がテーマごとにチームメンバーを割り当て、各メンバーが独立してWikiを読み、ドキュメントを生成し、指定パスに書き出す。以下のようなツリー構造のドメインを扱う場合に有効:
+
+```
+production/
+  productA/  (EC2, RDS, ...)
+  productB/  (ECS, ElastiCache, ...)
+test/
+  productA/
+  productB/
+```
+
+追加のスキルや設定は不要。LLM がユーザーの指示を解釈して柔軟に動作する。
+
 ## 設定
 
 設定は `.llmwiki/config.json` に保存される（初回の `/llmwiki:make` 実行時に自動生成）。カスタマイズはこのファイルを直接編集する。
