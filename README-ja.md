@@ -22,7 +22,7 @@
 ## アップデート
 
 ```
-claude plugin update llmwiki
+claude plugin update llmwiki@ktrysmt
 ```
 
 更新後、Claude Code を再起動すると新しいバージョンが反映される。

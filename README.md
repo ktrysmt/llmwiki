@@ -22,7 +22,7 @@ As a plugin (all skills are installed together):
 ## Update
 
 ```
-claude plugin update llmwiki
+claude plugin update llmwiki@ktrysmt
 ```
 
 Restart Claude Code after updating to apply the new version.
