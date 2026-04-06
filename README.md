@@ -1,6 +1,6 @@
 # llmwiki
 
-[Japanese / 日本語](README-ja.md)
+English | [日本語](README-ja.md)
 
 A Claude Code plugin that automatically generates and maintains an entity-based knowledge wiki from text files stored in any directory.
 

@@ -1,6 +1,6 @@
 # llmwiki
 
-[English / 英語](README.md)
+[English](README.md) | 日本語
 
 任意のディレクトリに溜めたテキストファイルから、エンティティベースのナレッジWikiを自動生成・維持する Claude Code プラグイン。
 
