@@ -12,4 +12,4 @@
 - If a session cannot process all files, prioritize the most recent files and report the remaining count
 - `/llmwiki:metabolize` must not resolve contradictions without human approval
 - `/llmwiki:lint` decay demotion and promotion must not be executed without human approval
-- `/llmwiki:query` feedback must only be written to the wiki after obtaining human approval
+- `/llmwiki:query` feedback must only be written to the wiki after obtaining human approval, unless the specific operation is enabled in `auto_approve` of `.llmwiki/config.json`

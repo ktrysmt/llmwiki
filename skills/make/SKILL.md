@@ -46,6 +46,16 @@ Output is written to `.llmwiki/` directly under the project root. Created automa
 
 ## Phase 0: Deterministic Preprocessing
 
+### Step 0-0: Ensure Output Directory
+
+Check whether `.llmwiki/` exists under the project root. If it does not, create it together with the required subdirectory:
+
+```bash
+mkdir -p .llmwiki/entities
+```
+
+This guarantees that subsequent steps (index generation, preprocessing, wiki page writes) always have a valid output destination.
+
 ### Step 0-1: Index Generation
 
 ```bash
@@ -145,13 +155,27 @@ Report the following:
 
 ### Step 2-5: Persist Config
 
-Save (or update) `.llmwiki/config.json` with the input directory used in this run:
+Save (or update) `.llmwiki/config.json` with the input directory used in this run.
+
+If the file does not exist yet, initialize it with the full default schema:
 
 ```json
 {
-  "input_dir": "<absolute path to input directory>"
+  "input_dir": "<absolute path to input directory>",
+  "auto_approve": {
+    "query_save_synthesis": true
+  }
 }
 ```
+
+If the file already exists, merge only the `input_dir` value. Do not overwrite existing `auto_approve` settings.
+
+#### config.json Schema
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `input_dir` | string | (project root) | Absolute path to the input directory |
+| `auto_approve.query_save_synthesis` | bool | `true` | Skip user confirmation when saving synthesized answers to `syntheses/` |
 
 ### Step 2-6: Log Entry
 
