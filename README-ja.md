@@ -19,6 +19,14 @@
 /plugin install llmwiki@ktrysmt
 ```
 
+## アップデート
+
+```
+claude plugin update llmwiki
+```
+
+更新後、Claude Code を再起動すると新しいバージョンが反映される。
+
 ## 構成
 
 ```

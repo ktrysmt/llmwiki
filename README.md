@@ -19,6 +19,14 @@ As a plugin (all skills are installed together):
 /plugin install llmwiki@ktrysmt
 ```
 
+## Update
+
+```
+claude plugin update llmwiki
+```
+
+Restart Claude Code after updating to apply the new version.
+
 ## Structure
 
 ```
