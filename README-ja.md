@@ -137,6 +137,43 @@ genuine 型の矛盾解決時は source_type の信頼度順序（primary > seco
 
 Wikiの知識を組み合わせ、テーマ指定の構造化ドキュメントを生成する。
 
+## 設定
+
+設定は `.llmwiki/config.json` に保存される（初回の `/llmwiki:make` 実行時に自動生成）。カスタマイズはこのファイルを直接編集する。
+
+```json
+{
+  "input_dir": "/absolute/path/to/input",
+  "exclude_patterns": [
+    "submodule-a/",
+    "vendor/legacy-tool/",
+    "*.generated.ts"
+  ],
+  "auto_approve": {
+    "query_save_synthesis": true
+  }
+}
+```
+
+| キー | 型 | デフォルト | 説明 |
+|---|---|---|---|
+| `input_dir` | string | (プロジェクトルート) | 入力ディレクトリの絶対パス |
+| `exclude_patterns` | string[] | `[]` | スキャン対象から除外する glob パターン（`.gitignore` の後に適用） |
+| `auto_approve.query_save_synthesis` | bool | `true` | 合成回答の保存時にユーザー確認をスキップする |
+
+### exclude_patterns
+
+`.gitignore` ではカバーできないファイルやディレクトリ（サブモジュール、vendor 依存、生成ファイルなど）を除外する。gitignore 互換の glob 記法を使用:
+
+| パターン | 効果 |
+|---|---|
+| `vendor/` | `vendor/` ディレクトリ以下を全て除外 |
+| `sub/deep/` | ネストされたディレクトリを除外 |
+| `*.generated.ts` | 任意の階層で glob にマッチするファイルを除外 |
+| `ven*/` | ディレクトリパターンでもワイルドカードが使える |
+
+パターンは `.gitignore` によるフィルタリングの後に適用されるため、`.gitignore` に既にある項目を重複して書く必要はない。
+
 ## ルール
 
 - 入力ディレクトリは読み取り専用。スキルは変更・削除しない

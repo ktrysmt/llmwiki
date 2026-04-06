@@ -137,6 +137,43 @@ When resolving genuine contradictions, presents priority candidates based on sou
 
 Combines wiki knowledge to generate structured documents on a specified theme.
 
+## Configuration
+
+Settings are stored in `.llmwiki/config.json` (created automatically on first `/llmwiki:make` run). Edit this file directly to customize behavior.
+
+```json
+{
+  "input_dir": "/absolute/path/to/input",
+  "exclude_patterns": [
+    "submodule-a/",
+    "vendor/legacy-tool/",
+    "*.generated.ts"
+  ],
+  "auto_approve": {
+    "query_save_synthesis": true
+  }
+}
+```
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `input_dir` | string | (project root) | Absolute path to the input directory |
+| `exclude_patterns` | string[] | `[]` | Glob patterns to exclude from scanning (applied after `.gitignore`) |
+| `auto_approve.query_save_synthesis` | bool | `true` | Skip user confirmation when saving synthesized answers |
+
+### exclude_patterns
+
+Excludes files and directories that `.gitignore` does not cover -- submodules, vendored dependencies, generated files, etc. Uses gitignore-compatible glob syntax:
+
+| Pattern | Effect |
+|---|---|
+| `vendor/` | Exclude all files under `vendor/` directory |
+| `sub/deep/` | Exclude a nested directory |
+| `*.generated.ts` | Exclude files matching a glob at any level |
+| `ven*/` | Wildcards work in directory patterns too |
+
+Patterns are applied after `.gitignore` filtering, so there is no need to duplicate entries already in `.gitignore`.
+
 ## Rules
 
 - Input directories are read-only. Skills do not modify or delete them

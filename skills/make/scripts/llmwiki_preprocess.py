@@ -431,12 +431,82 @@ def _walk_with_gitignore(
     return sorted(files)
 
 
-def scan_input_files(input_dir: Path) -> list[Path]:
+def _load_exclude_patterns(wiki_dir: Path) -> list[str]:
+    """Load exclude_patterns from config.json."""
+    config_path = wiki_dir / "config.json"
+    if not config_path.exists():
+        return []
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            config = json.load(f)
+        patterns = config.get("exclude_patterns", [])
+        if isinstance(patterns, list):
+            return [str(p) for p in patterns if p]
+        return []
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _apply_exclude_patterns(
+    files: list[Path], input_dir: Path, exclude_patterns: list[str],
+) -> list[Path]:
+    """Filter files by exclude_patterns (gitignore-compatible glob syntax).
+
+    Directory patterns (ending with /) match all files under that directory.
+    Non-directory patterns are matched against the full relative path and basename.
+    """
+    if not exclude_patterns:
+        return files
+
+    # Build two rule sets:
+    # 1. Directory prefixes: "vendor/" -> exclude any file whose relative path starts with "vendor/"
+    # 2. File patterns: "*.log" -> standard gitignore matching against files
+    dir_prefixes: list[str] = []
+    file_rules: list[tuple[str, bool, bool, str]] = []
+    for pattern in exclude_patterns:
+        if pattern.endswith("/"):
+            clean = pattern.rstrip("/")
+            if clean:
+                dir_prefixes.append(clean)
+        else:
+            if pattern:
+                file_rules.append((pattern, False, False, ""))
+
+    result: list[Path] = []
+    for path in files:
+        try:
+            rel = str(path.relative_to(input_dir))
+        except ValueError:
+            rel = str(path)
+
+        # Check directory prefixes
+        excluded = False
+        for prefix in dir_prefixes:
+            if rel == prefix or rel.startswith(prefix + "/") or fnmatch.fnmatch(rel.split("/")[0], prefix):
+                excluded = True
+                break
+            # Also check intermediate path components for nested patterns like "a/b/"
+            if "/" in prefix:
+                if rel.startswith(prefix + "/") or fnmatch.fnmatch(rel, prefix + "/*") or fnmatch.fnmatch(rel, prefix + "/**"):
+                    excluded = True
+                    break
+
+        if not excluded and file_rules:
+            excluded = _is_ignored(rel, False, file_rules)
+
+        if not excluded:
+            result.append(path)
+    return result
+
+
+def scan_input_files(input_dir: Path, wiki_dir: Path | None = None) -> list[Path]:
     """Recursively find all text files under the input directory.
 
     Respects .gitignore at each directory level. Uses git ls-files when
     the input directory is a git repository; otherwise falls back to
     manual directory walk with gitignore parsing.
+
+    Additionally filters out paths matching exclude_patterns from config.json.
     """
     if not input_dir.exists():
         return []
@@ -444,10 +514,17 @@ def scan_input_files(input_dir: Path) -> list[Path]:
     # Fast path: use git if available and input_dir is a git repo
     git_files = _list_files_git(input_dir)
     if git_files is not None:
-        return git_files
+        files = git_files
+    else:
+        # Fallback: walk with gitignore parsing
+        files = _walk_with_gitignore(input_dir, _default_ignore_rules())
 
-    # Fallback: walk with gitignore parsing
-    return _walk_with_gitignore(input_dir, _default_ignore_rules())
+    # Apply exclude_patterns from config.json
+    if wiki_dir is not None:
+        exclude_patterns = _load_exclude_patterns(wiki_dir)
+        files = _apply_exclude_patterns(files, input_dir, exclude_patterns)
+
+    return files
 
 
 def scan_wiki_pages(entities_dir: Path) -> dict:
@@ -572,7 +649,7 @@ def preprocess(input_dir: Path, wiki_dir: Path) -> dict:
     patterns = compile_entity_patterns(alias_map)
 
     # Scan input files
-    raw_files = scan_input_files(input_dir)
+    raw_files = scan_input_files(input_dir, wiki_dir)
 
     # Scan wiki pages
     wiki_pages = scan_wiki_pages(entities_dir)
