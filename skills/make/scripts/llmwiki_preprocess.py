@@ -207,7 +207,15 @@ def _parse_frontmatter_text(text: str) -> dict:
             k, v = stripped.split(":", 1)
             k = k.strip()
             v = v.strip()
-            if v:
+            if v == "[]":
+                result[k] = []
+                current_key = None
+                current_list = None
+            elif v == "{}":
+                result[k] = {}
+                current_key = None
+                current_list = None
+            elif v:
                 result[k] = v
                 current_key = None
                 current_list = None
