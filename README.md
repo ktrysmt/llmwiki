@@ -233,3 +233,29 @@ When skills run exclusively in CI (e.g., GitHub Actions), `.llmwiki/` can be man
 - Note: cache eviction triggers a full rebuild, which may produce different wiki states due to LLM non-determinism
 
 Choose Pattern A unless you have a dedicated CI pipeline that is the sole executor of llmwiki skills.
+
+## Changelog
+
+### v0.1
+
+- Entity-based wiki generation from text files (`/llmwiki:make`)
+- Natural language queries with feedback loop (`/llmwiki:query`)
+- Contradiction detection with "needs review" flags and 4-type classification (`/llmwiki:metabolize`)
+- Health checks: orphan pages, broken links, stale pages, uncovered files (`/llmwiki:lint`)
+- Decay/promotion lifecycle for dormant pages
+- SHA-256 change detection and differential merge
+- Source trust ordering: primary > secondary > derived
+- Document generation from wiki knowledge (`/llmwiki:docs`)
+- Exclude patterns support in config.json
+
+### v0.2
+
+- Auto-resolve temporal contradictions between primary sources (`auto_approve.metabolize_temporal_primary`)
+- Urgency scoring for contradictions based on days since flagged
+- Cross-entity contradiction detection across related pages via semantic checking
+- Propagation check after contradiction resolution to prevent cascade conflicts
+- Contradiction statistics by source file and category to identify low-quality sources
+- Fact-level provenance tracking: `[source: filename, type, date]` tags on Key Facts
+- Provenance gap detection in lint reports
+- Provenance backfill during metabolize operations
+- Replaced unverifiable DeltaZero reference with cited research (EMNLP 2024, Chroma Research)

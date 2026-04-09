@@ -58,7 +58,7 @@ Discovery: A description in an existing page contradicts another page or the ans
 
 Write procedure:
 1. Read the relevant page
-2. Include both values with dates in `## Key Facts` and add a "needs review" flag
+2. Include both values with provenance in `## Key Facts` and add a "needs review" flag: `- Value A [source: file-a, type, YYYY-MM-DD] vs Value B [source: file-b, type, YYYY-MM-DD] -- needs review`. If provenance cannot be determined for either value, omit the `[source: ...]` tag for that value
 3. Update frontmatter `updated` to today
 4. Append to `## Changelog`: "YYYY-MM-DD: Contradiction detected (value A vs value B), added needs review flag"
 

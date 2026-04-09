@@ -32,11 +32,19 @@ Read /tmp/llmwiki_lint.xml and report the following:
 - broken_links: [[wikilinks]] to non-existent entities
 - stale_pages: Pages not updated for over 30 days
 - uncovered_files: Files matching entities but not yet ingested
-- contradictions: Count and page list of "needs review" flags
+- contradictions: Count, page list, and urgency score of "needs review" flags (sorted by urgency descending). Urgency = days_since_flagged x impact_weight. Thresholds:
+  - urgency > 360: Critical -- strongly recommend immediate resolution
+  - urgency > 180: High -- recommend running /llmwiki:metabolize
+  - urgency > 0: Normal -- report for awareness
 - decay_candidates: Pages with 0 references and not updated for 90+ days
   - days_since_update > 180: Strongly recommend demotion
   - days_since_update > 90: Propose demotion
 - promotion_candidates: Pages with `status: dormant` but references > 0 or recent source updates
+
+- cross_entity_contradictions: Potential contradictions between related entities. The preprocessing XML provides `<cross-entity-pairs>` containing Key Facts for each pair of related entities. Read each pair and semantically check if facts from entity A contradict facts from entity B (e.g., entity A says "DB version is 14" while entity B says "DB version is 15"). Report only genuine semantic contradictions, not mere differences in scope or context
+
+- contradiction_stats: Summary of contradictions by source file and category (from `<contradiction-stats>` in XML). Highlight source files with disproportionately high contradiction counts as potential low-quality sources
+- provenance_gaps: Count of Key Facts missing provenance tags (from `<provenance-gaps>` in XML). Report total facts without provenance and the pages with the most gaps. This is informational only -- provenance is backfilled gradually through make and metabolize operations
 
 If all clean, report "no issues found".
 
@@ -48,6 +56,7 @@ If issues exist, propose corrective actions by category:
 - stale: Propose re-collecting source files
 - uncovered: Propose re-running /llmwiki:make
 - contradictions: Propose running /llmwiki:metabolize. Note that the /tmp/llmwiki_lint.xml output from lint can be used directly as input for metabolize
+- cross_entity_contradictions: For each detected cross-entity contradiction, propose adding "needs review" flags to both pages' Key Facts with the contradictory values and source references. Requires user approval
 - decay_candidates: Propose demotion (requires user approval)
 - promotion_candidates: Propose reactivation to active (requires user approval)
 

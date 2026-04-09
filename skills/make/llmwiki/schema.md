@@ -25,8 +25,9 @@ updated: <YYYY-MM-DD>
 (Self-contained description of the entity)
 
 ## Key Facts
-- Fact [source-id or [[entity-id]]]
-- If contradictions exist, include both values with dates and add a "needs review" flag
+- Fact [source: filename.json, primary, 2026-04-01]
+- Fact without provenance (legacy or unresolvable)
+- Value A [source: config.json, primary, 2026-04-01] vs Value B [source: notes.md, secondary, 2026-03-15] -- needs review
 
 ## Relations
 - [[related-entity-id]] -- Description of relationship
@@ -45,7 +46,7 @@ updated: <YYYY-MM-DD>
 When updating an existing page:
 1. Add new sources to frontmatter `sources`. Update `updated` to today
 2. Preserve existing Overview descriptions while supplementing/correcting with new information
-3. Append to Key Facts. If contradictory values exist, include both with dates and add a "needs review" flag
+3. Append to Key Facts with fact-level provenance: `- Fact [source: filename, source_type, YYYY-MM-DD]`. If contradictory values exist, include both with provenance and add a "needs review" flag: `- Value A [source: file-a, primary, 2026-04-01] vs Value B [source: file-b, secondary, 2026-03-15] -- needs review`. Existing facts without provenance (legacy) are left as-is until the next metabolize or re-ingestion
 4. Add Relations bidirectionally (if adding A->B, also add B->A)
 5. Add new sources to the Source Files table
 6. Append changes to Changelog
@@ -62,6 +63,22 @@ Determination guidelines:
 - derived: Secondary documents synthesized by llmwiki:query or llmwiki:docs. Integrations of information from source entities
 
 During contradiction resolution (llmwiki:metabolize), values from higher-trust sources are presented as priority candidates.
+
+## Fact-Level Provenance
+
+Each Key Fact should include an inline provenance tag indicating which source file contributed the fact:
+
+```
+- Fact description [source: filename, source_type, YYYY-MM-DD]
+```
+
+- `filename`: Base name of the source file (not full path, for readability)
+- `source_type`: primary / secondary / derived
+- `YYYY-MM-DD`: The date the fact was ingested from this source
+
+Facts without provenance tags are treated as legacy data. They are valid but cannot participate in automated trust-based contradiction resolution. Provenance is backfilled during:
+- `/llmwiki:make` Phase 1: New and updated facts receive provenance at ingestion time
+- `/llmwiki:metabolize` Step 4: When resolving contradictions, all facts on the page are checked and missing provenance is backfilled where the source can be determined from the page's `sources[]` frontmatter
 
 ## Entity ID Convention
 

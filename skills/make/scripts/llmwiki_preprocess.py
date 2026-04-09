@@ -562,12 +562,39 @@ def scan_wiki_pages(entities_dir: Path) -> dict:
     return pages
 
 
+def _parse_contradiction_dates(content: str) -> list[str]:
+    """Extract dates when contradictions were flagged from Changelog entries.
+
+    Looks for lines like: "- 2026-04-01: Contradiction detected ..."
+    """
+    dates: list[str] = []
+    in_changelog = False
+    for line in content.splitlines():
+        if line.strip().startswith("## Changelog"):
+            in_changelog = True
+            continue
+        if in_changelog and line.strip().startswith("## "):
+            break
+        if in_changelog and "ontradiction" in line:
+            m = re.match(r"^-\s*(\d{4}-\d{2}-\d{2})", line.strip())
+            if m:
+                dates.append(m.group(1))
+    return dates
+
+
 def count_contradictions(entities_dir: Path) -> dict:
-    """Count 'needs review' flags in wiki pages."""
+    """Count 'needs review' flags in wiki pages with urgency scoring.
+
+    Urgency is calculated as days since the contradiction was flagged,
+    weighted by classification impact (genuine > temporal > scope).
+    Since classification happens at metabolize time, unclassified
+    contradictions default to weight 2.
+    """
     total = 0
-    pages: list[str] = []
+    pages: list[dict] = []
     if not entities_dir.exists():
         return {"total": 0, "pages": []}
+    today = datetime.now()
     for path in sorted(entities_dir.rglob("*.md")):
         try:
             content = path.read_text(encoding="utf-8")
@@ -577,9 +604,146 @@ def count_contradictions(entities_dir: Path) -> dict:
         if count > 0:
             fm = parse_frontmatter(path)
             entity_id = fm.get("entity", path.stem) if fm else path.stem
-            pages.append(entity_id)
+            flagged_dates = _parse_contradiction_dates(content)
+            if flagged_dates:
+                oldest_date = min(flagged_dates)
+                try:
+                    days_since = (today - datetime.strptime(oldest_date, "%Y-%m-%d")).days
+                except ValueError:
+                    days_since = 0
+            else:
+                days_since = 0
+            urgency = days_since * 2  # default weight for unclassified
+            pages.append({
+                "entity_id": entity_id,
+                "count": count,
+                "days_since_flagged": days_since,
+                "urgency": urgency,
+            })
             total += count
-    return {"total": total, "pages": sorted(pages)}
+    # Sort by urgency descending (most urgent first)
+    pages.sort(key=lambda p: -p["urgency"])
+    return {"total": total, "pages": pages}
+
+
+def extract_key_facts(path: Path) -> list[str]:
+    """Extract Key Facts lines from a wiki page."""
+    try:
+        content = path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return []
+    facts: list[str] = []
+    in_key_facts = False
+    for line in content.splitlines():
+        if line.strip().startswith("## Key Facts"):
+            in_key_facts = True
+            continue
+        if in_key_facts and line.strip().startswith("## "):
+            break
+        if in_key_facts and line.strip().startswith("- "):
+            facts.append(line.strip()[2:])
+    return facts
+
+
+def build_cross_entity_pairs(wiki_pages: dict, entities_dir: Path) -> list[dict]:
+    """Build pairs of related entities with their Key Facts for cross-entity checking.
+
+    Returns a list of dicts: {entity_a, entity_b, facts_a, facts_b}
+    Only pairs connected by Relations (related field or wikilinks) are included.
+    """
+    pairs: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for eid, page_info in wiki_pages.items():
+        related_ids = set(page_info.get("related", []) + page_info.get("wikilinks", []))
+        path_a = Path(page_info["path"])
+        facts_a = extract_key_facts(path_a)
+        if not facts_a:
+            continue
+        for rel_id in related_ids:
+            if rel_id not in wiki_pages:
+                continue
+            pair_key = tuple(sorted([eid, rel_id]))
+            if pair_key in seen:
+                continue
+            seen.add(pair_key)
+            path_b = Path(wiki_pages[rel_id]["path"])
+            facts_b = extract_key_facts(path_b)
+            if not facts_b:
+                continue
+            pairs.append({
+                "entity_a": eid,
+                "entity_b": rel_id,
+                "facts_a": facts_a,
+                "facts_b": facts_b,
+            })
+    return pairs
+
+
+def count_provenance_gaps(entities_dir: Path) -> dict:
+    """Count Key Facts lines missing provenance tags.
+
+    A fact has provenance if it contains '[source:' pattern.
+    Facts without this pattern are counted as gaps (legacy data).
+    """
+    total_facts = 0
+    total_gaps = 0
+    pages: list[dict] = []
+    if not entities_dir.exists():
+        return {"total_facts": 0, "total_gaps": 0, "pages": []}
+    provenance_pattern = re.compile(r"\[source:\s*")
+    for path in sorted(entities_dir.rglob("*.md")):
+        facts = extract_key_facts(path)
+        if not facts:
+            continue
+        fm = parse_frontmatter(path)
+        entity_id = fm.get("entity", path.stem) if fm else path.stem
+        gaps = sum(1 for f in facts if not provenance_pattern.search(f))
+        total_facts += len(facts)
+        total_gaps += gaps
+        if gaps > 0:
+            pages.append({"entity_id": entity_id, "total": len(facts), "gaps": gaps})
+    pages.sort(key=lambda p: -p["gaps"])
+    return {"total_facts": total_facts, "total_gaps": total_gaps, "pages": pages}
+
+
+def collect_contradiction_stats(entities_dir: Path, wiki_pages: dict) -> dict:
+    """Collect contradiction statistics by source file and category.
+
+    Analyzes which source files and categories produce the most contradictions,
+    enabling identification of low-quality sources (inspired by NATO Admiralty Code).
+    """
+    by_source: dict[str, int] = {}
+    by_category: dict[str, int] = {}
+    if not entities_dir.exists():
+        return {"by_source": {}, "by_category": {}, "total": 0}
+
+    total = 0
+    for path in sorted(entities_dir.rglob("*.md")):
+        try:
+            content = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        count = content.count("needs review")
+        if count == 0:
+            continue
+        total += count
+        fm = parse_frontmatter(path)
+        if not fm:
+            continue
+        entity_id = fm.get("entity", path.stem)
+        category = fm.get("category", "unknown")
+        by_category[category] = by_category.get(category, 0) + count
+        # Attribute contradictions to source files of this page
+        sources = fm.get("sources", [])
+        for src in sources:
+            if isinstance(src, dict) and "path" in src:
+                src_path = src["path"]
+                by_source[src_path] = by_source.get(src_path, 0) + count
+
+    # Sort by count descending
+    by_source = dict(sorted(by_source.items(), key=lambda x: -x[1]))
+    by_category = dict(sorted(by_category.items(), key=lambda x: -x[1]))
+    return {"by_source": by_source, "by_category": by_category, "total": total}
 
 
 def run_lint(
@@ -630,12 +794,24 @@ def run_lint(
     # Contradictions: count "needs review" flags
     contradictions = count_contradictions(entities_dir) if entities_dir else {"total": 0, "pages": []}
 
+    # Cross-entity pairs for semantic contradiction checking
+    cross_entity_pairs = build_cross_entity_pairs(wiki_pages, entities_dir) if entities_dir else []
+
+    # Contradiction statistics by source and category
+    contradiction_stats = collect_contradiction_stats(entities_dir, wiki_pages) if entities_dir else {"by_source": {}, "by_category": {}, "total": 0}
+
+    # Provenance gap detection
+    provenance_gaps = count_provenance_gaps(entities_dir) if entities_dir else {"total_facts": 0, "total_gaps": 0, "pages": []}
+
     return {
         "orphan_pages": sorted(orphan_pages),
         "broken_links": sorted(broken_links),
         "stale_pages": sorted(stale_pages),
         "uncovered_files": sorted(uncovered_files),
         "contradictions": contradictions,
+        "cross_entity_pairs": cross_entity_pairs,
+        "contradiction_stats": contradiction_stats,
+        "provenance_gaps": provenance_gaps,
     }
 
 
@@ -819,8 +995,52 @@ def result_to_xml(result: dict) -> str:
 
     contradictions = lint["contradictions"]
     contr_el = ET.SubElement(lint_el, "contradictions", total=str(contradictions["total"]))
-    for eid in contradictions["pages"]:
-        ET.SubElement(contr_el, "entity", id=eid)
+    for page_info in contradictions["pages"]:
+        if isinstance(page_info, dict):
+            ET.SubElement(contr_el, "entity", attrib={
+                "id": page_info["entity_id"],
+                "count": str(page_info["count"]),
+                "days-since-flagged": str(page_info["days_since_flagged"]),
+                "urgency": str(page_info["urgency"]),
+            })
+        else:
+            # backward compat: plain string entity id
+            ET.SubElement(contr_el, "entity", id=str(page_info))
+
+    pgaps = lint.get("provenance_gaps", {"total_facts": 0, "total_gaps": 0, "pages": []})
+    pgaps_el = ET.SubElement(lint_el, "provenance-gaps", attrib={
+        "total-facts": str(pgaps["total_facts"]),
+        "total-gaps": str(pgaps["total_gaps"]),
+    })
+    for pg in pgaps["pages"]:
+        ET.SubElement(pgaps_el, "entity", attrib={
+            "id": pg["entity_id"],
+            "total": str(pg["total"]),
+            "gaps": str(pg["gaps"]),
+        })
+
+    cstats = lint.get("contradiction_stats", {"by_source": {}, "by_category": {}, "total": 0})
+    stats_el = ET.SubElement(lint_el, "contradiction-stats", total=str(cstats["total"]))
+    by_src_el = ET.SubElement(stats_el, "by-source")
+    for src_path, cnt in cstats["by_source"].items():
+        ET.SubElement(by_src_el, "source", path=src_path, count=str(cnt))
+    by_cat_el = ET.SubElement(stats_el, "by-category")
+    for cat, cnt in cstats["by_category"].items():
+        ET.SubElement(by_cat_el, "category", name=cat, count=str(cnt))
+
+    cross_pairs = lint.get("cross_entity_pairs", [])
+    cross_el = ET.SubElement(lint_el, "cross-entity-pairs", total=str(len(cross_pairs)))
+    for pair in cross_pairs:
+        pair_el = ET.SubElement(cross_el, "pair", attrib={
+            "entity-a": pair["entity_a"],
+            "entity-b": pair["entity_b"],
+        })
+        for fact in pair["facts_a"]:
+            fact_el = ET.SubElement(pair_el, "fact-a")
+            fact_el.text = fact
+        for fact in pair["facts_b"]:
+            fact_el = ET.SubElement(pair_el, "fact-b")
+            fact_el.text = fact
 
     ET.indent(root)
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding="unicode") + "\n"

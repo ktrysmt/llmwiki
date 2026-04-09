@@ -233,3 +233,29 @@ test/
 - 注意: キャッシュが消えるとフル再生成が走り、LLM の非決定性によりWiki状態が変わりうる
 
 スキルを実行する専用の CI パイプラインがない限り、パターン A を推奨する。
+
+## Changelog
+
+### v0.1
+
+- テキストファイルからエンティティベースのWiki生成 (`/llmwiki:make`)
+- 自然言語クエリとフィードバックループ (`/llmwiki:query`)
+- "needs review" フラグによる矛盾検出と4類型分類 (`/llmwiki:metabolize`)
+- 健全性チェック: orphan pages, broken links, stale pages, uncovered files (`/llmwiki:lint`)
+- dormant ページの decay/promotion ライフサイクル
+- SHA-256 による変更検出と差分マージ
+- ソース信頼度順序: primary > secondary > derived
+- Wiki知識からのドキュメント生成 (`/llmwiki:docs`)
+- config.json の exclude_patterns 対応
+
+### v0.2
+
+- primary 同士の temporal 矛盾の自動解消 (`auto_approve.metabolize_temporal_primary`)
+- 矛盾の経過日数に基づく緊急度スコア
+- 関連エンティティ間のクロスエンティティ矛盾検出（セマンティックチェック）
+- 矛盾解消後の波及分析によるカスケード矛盾の防止
+- ソースファイル別・カテゴリ別の矛盾統計（低品質ソースの特定）
+- ファクト単位の来歴追跡: Key Facts に `[source: filename, type, date]` タグ
+- lint での来歴欠損検出
+- metabolize での来歴補完（矛盾解消時にページ全体の来歴を埋める）
+- 検証不能な DeltaZero 記述を実在する研究に差し替え (EMNLP 2024, Chroma Research)

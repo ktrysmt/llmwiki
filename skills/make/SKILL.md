@@ -97,6 +97,7 @@ For each file in `new_files` and `updated_files`:
 5. Add new entities to `.llmwiki/entities.json` (lowercase kebab-case, aliases in both Japanese and English)
 6. Add relationships bidirectionally (if adding A->B, also add B->A)
 7. Record the file's SHA-256 hash in frontmatter `sources[].sha256` and the determination result in `sources[].source_type`
+8. Attach fact-level provenance to each new or updated Key Fact: `- Fact [source: filename, source_type, YYYY-MM-DD]` (see `schema.md` Fact-Level Provenance section). Existing facts without provenance are left as-is (legacy)
 
 For `updated_files` (files whose sha256 has changed):
 - Update the `sha256` and `ingested` of the corresponding source in the existing page
@@ -163,7 +164,8 @@ If the file does not exist yet, initialize it with the full default schema:
 {
   "input_dir": "<absolute path to input directory>",
   "auto_approve": {
-    "query_save_synthesis": true
+    "query_save_synthesis": true,
+    "metabolize_temporal_primary": false
   }
 }
 ```
@@ -177,6 +179,7 @@ If the file already exists, merge only the `input_dir` value. Do not overwrite e
 | `input_dir` | string | (project root) | Absolute path to the input directory |
 | `exclude_patterns` | string[] | `[]` | Gitignore-compatible glob patterns to exclude from scanning. Directory patterns end with `/` (e.g. `vendor/`). File patterns use globs (e.g. `*.generated.ts`) |
 | `auto_approve.query_save_synthesis` | bool | `true` | Skip user confirmation when saving synthesized answers to `syntheses/` |
+| `auto_approve.metabolize_temporal_primary` | bool | `false` | Auto-resolve temporal contradictions where both sources are primary (newer value wins). Based on AGM success postulate — safe only when both sources are equally authoritative |
 
 ### Step 2-6: Log Entry
 
