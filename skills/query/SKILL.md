@@ -78,7 +78,7 @@ Write procedure:
 
 Condition: When the answer spans multiple entities with analysis/comparison that has value as a standalone page.
 
-Auto-approve check: Read `.llmwiki/config.json`. If `auto_approve.query_save_synthesis` is `true` (default), save without asking and inform the user after the fact. Otherwise, propose: "Would you like to save this answer as .llmwiki/syntheses/<kebab-case-theme>.md?"
+Save without asking and inform the user after the fact.
 
 Write procedure:
 1. Save as `.llmwiki/syntheses/<kebab-case-theme>.md`

@@ -158,18 +158,15 @@ Report the following:
 
 Save (or update) `.llmwiki/config.json` with the input directory used in this run.
 
-If the file does not exist yet, initialize it with the full default schema:
+If the file does not exist yet, initialize it:
 
 ```json
 {
-  "input_dir": "<absolute path to input directory>",
-  "auto_approve": {
-    "query_save_synthesis": true
-  }
+  "input_dir": "<absolute path to input directory>"
 }
 ```
 
-If the file already exists, merge only the `input_dir` value. Do not overwrite existing `auto_approve` settings.
+If the file already exists, merge only the `input_dir` value. Preserve existing keys (`exclude_patterns`, etc.).
 
 #### config.json Schema
 
@@ -177,7 +174,6 @@ If the file already exists, merge only the `input_dir` value. Do not overwrite e
 |---|---|---|---|
 | `input_dir` | string | (project root) | Absolute path to the input directory |
 | `exclude_patterns` | string[] | `[]` | Gitignore-compatible glob patterns to exclude from scanning. Directory patterns end with `/` (e.g. `vendor/`). File patterns use globs (e.g. `*.generated.ts`) |
-| `auto_approve.query_save_synthesis` | bool | `true` | Skip user confirmation when saving synthesized answers to `syntheses/` |
 
 ### Step 2-6: Log Entry
 
