@@ -29,7 +29,7 @@ Query the knowledge base accumulated in .llmwiki/ and get answers.
 
 ### Step 4: Feedback (optional)
 
-If the following are discovered during the answering process, propose to the user. Only update the wiki if the user approves.
+If the following are discovered during the answering process, propose to the user and only update the wiki if the user approves. Exception: 4e (Saving Synthesized Answer) is saved without asking — see its section for details.
 
 #### 4a: Adding Relationships
 
@@ -74,11 +74,11 @@ Write procedure:
 3. Append to Changelog: "YYYY-MM-DD: Reactivated to active (promotion due to re-reference in query)"
 4. Update frontmatter `updated` to today
 
-#### 4e: Saving Synthesized Answer to Syntheses
+#### 4e: Saving Synthesized Answer to Syntheses (no approval required)
 
 Condition: When the answer spans multiple entities with analysis/comparison that has value as a standalone page.
 
-Save without asking and inform the user after the fact.
+Always save without asking for approval, then inform the user after the fact. This is an exception to the Step 4 approval rule.
 
 Write procedure:
 1. Save as `.llmwiki/syntheses/<kebab-case-theme>.md`
