@@ -1,4 +1,4 @@
-# /llmwiki:make
+# /llmwiki:import
 
 Recursively scans text files under a specified directory and generates/maintains an entity-based knowledge wiki through deterministic preprocessing + LLM compilation.
 
@@ -8,11 +8,11 @@ Recursively scans text files under a specified directory and generates/maintains
 
 ## Arguments
 
-`/llmwiki:make [path]`
+`/llmwiki:import [path]`
 
 The `path` argument is optional. Resolution order for the input directory:
 
-1. Explicit argument: `/llmwiki:make <path>`
+1. Explicit argument: `/llmwiki:import <path>`
 2. Saved config: `.llmwiki/config.json` -> `input_dir`
 3. Default: project root (current working directory)
 
@@ -164,8 +164,7 @@ If the file does not exist yet, initialize it with the full default schema:
 {
   "input_dir": "<absolute path to input directory>",
   "auto_approve": {
-    "query_save_synthesis": true,
-    "metabolize_temporal_primary": false
+    "query_save_synthesis": true
   }
 }
 ```
@@ -179,12 +178,11 @@ If the file already exists, merge only the `input_dir` value. Do not overwrite e
 | `input_dir` | string | (project root) | Absolute path to the input directory |
 | `exclude_patterns` | string[] | `[]` | Gitignore-compatible glob patterns to exclude from scanning. Directory patterns end with `/` (e.g. `vendor/`). File patterns use globs (e.g. `*.generated.ts`) |
 | `auto_approve.query_save_synthesis` | bool | `true` | Skip user confirmation when saving synthesized answers to `syntheses/` |
-| `auto_approve.metabolize_temporal_primary` | bool | `false` | Auto-resolve temporal contradictions where both sources are primary (newer value wins). Based on AGM success postulate — safe only when both sources are equally authoritative |
 
 ### Step 2-6: Log Entry
 
 Append an entry to `.llmwiki/log.md` in the following format (if the file does not exist, create it with a `# llmwiki Log` header):
 
 ```
-## [YYYY-MM-DD] make | Processed <file count> files, created <new page count>, updated <updated page count>
+## [YYYY-MM-DD] import | Processed <file count> files, created <new page count>, updated <updated page count>
 ```

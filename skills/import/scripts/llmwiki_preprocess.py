@@ -595,7 +595,7 @@ def count_contradictions(entities_dir: Path) -> dict:
 
     Urgency is calculated as days since the contradiction was flagged,
     weighted by classification impact (genuine > temporal > scope).
-    Since classification happens at metabolize time, unclassified
+    Since classification happens at fix time, unclassified
     contradictions default to weight 2.
     """
     total = 0

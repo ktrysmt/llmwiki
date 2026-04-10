@@ -33,7 +33,7 @@ Restart Claude Code after updating to apply the new version.
 .claude-plugin/
   plugin.json               # Plugin manifest
 skills/
-  make/                     # /llmwiki:make -- Wiki generation & update
+  import/                   # /llmwiki:import -- Wiki generation & update
     SKILL.md
     scripts/
       llmwiki_preprocess.py # Deterministic preprocessing + sha256 change detection
@@ -43,9 +43,9 @@ skills/
       schema.md             # Wiki page template + merge rules
   query/                    # /llmwiki:query -- Query the wiki in natural language
     SKILL.md
-  lint/                     # /llmwiki:lint -- Health check + Decay demotion
+  lint/                     # /llmwiki:lint -- Health check (detection & reporting only)
     SKILL.md
-  metabolize/               # /llmwiki:metabolize -- Contradiction detection & resolution
+  fix/                      # /llmwiki:fix -- Resolve contradictions, decay demotions & promotions
     SKILL.md
   docs/                     # /llmwiki:docs -- Generate documents from the wiki
     SKILL.md
@@ -68,19 +68,19 @@ Running a skill generates `.llmwiki/` in the project directory:
 
 | Skill | Purpose | Writes |
 |---|---|---|
-| /llmwiki:make | Generate & update wiki from input files | Automatic (including dormant promotion) |
+| /llmwiki:import | Generate & update wiki from input files | Automatic (including dormant promotion) |
 | /llmwiki:query | Query the wiki in natural language | Only on feedback (requires approval) |
-| /llmwiki:lint | Health check + Decay/Promotion proposals | Only on demotion/promotion (requires approval) |
-| /llmwiki:metabolize | Detect, classify & resolve contradictions (including false positives) | Requires approval |
+| /llmwiki:lint | Health check (detection & reporting only) | None (read-only) |
+| /llmwiki:fix | Resolve contradictions, decay demotions & promotions | Requires approval |
 | /llmwiki:docs | Generate documents by specifying a theme | None (external output only) |
 
 ## Usage
 
-### /llmwiki:make -- Wiki Generation & Update
+### /llmwiki:import -- Wiki Generation & Update
 
 ```
-/llmwiki:make              # scans the project root
-/llmwiki:make ~/work/dump  # scans an external directory
+/llmwiki:import              # scans the project root
+/llmwiki:import ~/work/dump  # scans an external directory
 ```
 
 Processes in order: Phase 0 (preprocessing) -> Phase 1 (LLM ingestion) -> Phase 2 (validation).
@@ -116,17 +116,17 @@ Valuable synthesized answers can be saved to `.llmwiki/syntheses/` to accumulate
 
 Detects the following and proposes corrective actions:
 - Orphan pages, broken links, stale pages, uncovered files
-- Contradictions (count of "needs review" flags; guides to /llmwiki:metabolize)
+- Contradictions (count of "needs review" flags; guides to /llmwiki:fix)
 - Decay candidates (pages with 0 references and not updated for 90+ days)
 - Promotion candidates (dormant pages with references > 0)
 
-### /llmwiki:metabolize -- Contradiction Resolution
+### /llmwiki:fix -- Issue Resolution
 
 ```
-/llmwiki:metabolize
+/llmwiki:fix
 ```
 
-Classifies "needs review" flags (contradictions) in the wiki using llmwiki's own practical taxonomy -- temporal / scope / genuine / none (false positive) -- and seeks human judgment for resolution.
+Resolves issues detected by lint: classifies contradictions using llmwiki's practical taxonomy (temporal / scope / genuine / none), executes decay demotions and dormant promotions.
 When resolving genuine contradictions, presents priority candidates based on source_type trust order (primary > secondary > derived).
 
 ### /llmwiki:docs -- Document Generation
@@ -166,7 +166,7 @@ No additional skills or configuration are needed -- the flexibility comes from t
 
 ## Configuration
 
-Settings are stored in `.llmwiki/config.json` (created automatically on first `/llmwiki:make` run). Edit this file directly to customize behavior.
+Settings are stored in `.llmwiki/config.json` (created automatically on first `/llmwiki:import` run). Edit this file directly to customize behavior.
 
 ```json
 {
@@ -208,7 +208,7 @@ Patterns are applied after `.gitignore` filtering, so there is no need to duplic
 - Contradictory information is retained with both values dated and flagged. The LLM does not resolve them
 - Entity IDs use lowercase kebab-case; aliases include both Japanese and English
 - source_type trust order: primary > secondary > derived. Determined from both path and content
-- /llmwiki:metabolize, /llmwiki:lint demotion/promotion, and /llmwiki:query feedback require human approval
+- /llmwiki:fix and /llmwiki:query feedback require human approval
 - All skill operations are recorded chronologically in `.llmwiki/log.md`
 
 ## `.llmwiki/` Management
@@ -222,7 +222,7 @@ Track `.llmwiki/` in git when humans run skills directly. This ensures:
 - Stable wiki state shared across team members
 - Rollback via `git checkout` / `git revert`
 - Reproducible `/llmwiki:docs` output pinned to a specific commit
-- Consistent `/llmwiki:metabolize` resolution history
+- Consistent `/llmwiki:fix` resolution history
 
 ### Pattern B: CI cache (for CI-only workflows)
 
@@ -238,11 +238,11 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 
 ### v0.1
 
-- Entity-based wiki generation from text files (`/llmwiki:make`)
+- Entity-based wiki generation from text files (`/llmwiki:import`)
 - Natural language queries with feedback loop (`/llmwiki:query`)
-- Contradiction detection with "needs review" flags and 4-type classification (`/llmwiki:metabolize`)
+- Contradiction detection with "needs review" flags and 4-type classification (`/llmwiki:fix`)
 - Health checks: orphan pages, broken links, stale pages, uncovered files (`/llmwiki:lint`)
-- Decay/promotion lifecycle for dormant pages
+- Decay/promotion lifecycle for dormant pages (`/llmwiki:fix`)
 - SHA-256 change detection and differential merge
 - Source trust ordering: primary > secondary > derived
 - Document generation from wiki knowledge (`/llmwiki:docs`)
@@ -250,12 +250,12 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 
 ### v0.2
 
-- Auto-resolve temporal contradictions between primary sources (`auto_approve.metabolize_temporal_primary`)
+- Auto-resolve temporal contradictions between primary sources (always enabled)
 - Urgency scoring for contradictions based on days since flagged
 - Cross-entity contradiction detection across related pages via semantic checking
 - Propagation check after contradiction resolution to prevent cascade conflicts
 - Contradiction statistics by source file and category to identify low-quality sources
 - Fact-level provenance tracking: `[source: filename, type, date]` tags on Key Facts
 - Provenance gap detection in lint reports
-- Provenance backfill during metabolize operations
+- Provenance backfill during fix operations
 - Replaced unverifiable DeltaZero reference with cited research (EMNLP 2024, Chroma Research)

@@ -25,7 +25,7 @@ Examples:
 Among the target entities:
 - Report pages with "needs review" flags
 - Report stale pages (including dormant pages)
-- If contradictions exist, recommend running /llmwiki:metabolize beforehand
+- If contradictions exist, recommend running /llmwiki:fix beforehand
 
 Proceed to generation only if the user instructs to continue.
 
