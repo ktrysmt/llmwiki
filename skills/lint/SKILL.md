@@ -1,3 +1,9 @@
+---
+name: lint
+description: Audit .llmwiki/ knowledge base health and report issues like orphan pages, broken links, stale pages, contradictions, cross-entity contradictions, provenance gaps, and decay candidates. Use when the user wants to check wiki state or before running /llmwiki:fix.
+allowed-tools: Read Edit Bash(python3 *)
+---
+
 # /llmwiki:lint
 
 Check the health of .llmwiki/ and report issues.

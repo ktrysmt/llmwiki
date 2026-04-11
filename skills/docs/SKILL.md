@@ -1,3 +1,11 @@
+---
+name: docs
+description: Generate structured documents on a specified theme by synthesizing multiple entities from .llmwiki/. Use when the user wants to produce architecture overviews, procedure guides, onboarding materials, or other multi-entity documents.
+argument-hint: "<theme or question>"
+disable-model-invocation: true
+allowed-tools: Read Edit Write
+---
+
 # /llmwiki:docs
 
 Generate structured documents on a specified theme based on knowledge in .llmwiki/.

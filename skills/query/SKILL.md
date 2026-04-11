@@ -1,3 +1,10 @@
+---
+name: query
+description: Answer questions by searching the .llmwiki/ knowledge base. Cites entity sources with [[wikilinks]] and flags needs-review information. Use when the user asks questions about content the wiki covers.
+argument-hint: "<question>"
+allowed-tools: Read Edit Write
+---
+
 # /llmwiki:query
 
 Query the knowledge base accumulated in .llmwiki/ and get answers.
