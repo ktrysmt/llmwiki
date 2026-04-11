@@ -259,3 +259,12 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 - Provenance gap detection in lint reports
 - Provenance backfill during fix operations
 - Replaced unverifiable DeltaZero reference with cited research (EMNLP 2024, Chroma Research)
+
+### v0.3
+
+- Renamed `/llmwiki:make` to `/llmwiki:import` and `/llmwiki:metabolize` to `/llmwiki:fix` for clearer intent
+- `/llmwiki:lint` is now read-only — detection and reporting only
+- Moved decay demotion and dormant promotion from `/llmwiki:lint` into `/llmwiki:fix`, consolidating all approval-required writes into a single skill
+- Added `/llmwiki:update` — single-pipeline runner that chains import -> lint -> fix while sharing deterministic preprocessing across phases
+- `/llmwiki:query` synthesis save is now exempt from approval (saved automatically with after-the-fact reporting)
+- Added YAML frontmatter to every `SKILL.md` (`name`, `description`, `allowed-tools`, `argument-hint`); side-effecting skills set `disable-model-invocation: true` to prevent automatic invocation

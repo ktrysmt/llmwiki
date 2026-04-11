@@ -259,3 +259,12 @@ test/
 - lint での来歴欠損検出
 - fix での来歴補完（矛盾解消時にページ全体の来歴を埋める）
 - 検証不能な DeltaZero 記述を実在する研究に差し替え (EMNLP 2024, Chroma Research)
+
+### v0.3
+
+- スキル名を整理: `/llmwiki:make` → `/llmwiki:import`、`/llmwiki:metabolize` → `/llmwiki:fix`
+- `/llmwiki:lint` を読み取り専用化（検出とレポートのみ）
+- decay demotion と dormant promotion を `/llmwiki:lint` から `/llmwiki:fix` に移動し、承認が必要な書き込みを単一スキルに集約
+- `/llmwiki:update` を追加: import → lint → fix を 1 コマンドで実行するパイプライン。決定論的な前処理をフェーズ間で共有
+- `/llmwiki:query` のシンセシス保存を承認不要化（自動保存し事後報告）
+- 全 `SKILL.md` に YAML frontmatter を追加 (`name`, `description`, `allowed-tools`, `argument-hint`)。副作用を持つスキルには `disable-model-invocation: true` を設定して自動起動を抑止

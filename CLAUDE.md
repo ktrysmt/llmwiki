@@ -10,3 +10,4 @@
 - Entity IDs use lowercase kebab-case
 - Aliases include both Japanese and English
 - If a session cannot process all files, prioritize the most recent files and report the remaining count
+- When adding features or making patch/minor version updates, update both `README.md` and `README-ja.md` Changelog sections in the same change
