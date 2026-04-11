@@ -268,3 +268,4 @@ test/
 - `/llmwiki:update` を追加: import → lint → fix を 1 コマンドで実行するパイプライン。決定論的な前処理をフェーズ間で共有
 - `/llmwiki:query` のシンセシス保存を承認不要化（自動保存し事後報告）
 - 全 `SKILL.md` に YAML frontmatter を追加 (`name`, `description`, `allowed-tools`, `argument-hint`)。副作用を持つスキルには `disable-model-invocation: true` を設定して自動起動を抑止
+- v0.3.4: `fix`, `update`, `import`, `docs` から `disable-model-invocation: true` を削除。プラグイン skill にこのフラグを付けると `llmwiki:` 名前空間プレフィックスが剥がれ (anthropics/claude-code#22345)、`/llmwiki:fix` が `/fix` として登録されてしまい手動起動が壊れるため

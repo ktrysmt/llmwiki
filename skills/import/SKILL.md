@@ -2,7 +2,6 @@
 name: import
 description: Recursively scan text files under a directory and generate or maintain an entity-based knowledge wiki at .llmwiki/ using deterministic preprocessing and LLM compilation. Use when initially building the wiki or ingesting new source files.
 argument-hint: "[path]"
-disable-model-invocation: true
 allowed-tools: Read Edit Write Bash(python3 *) Bash(mkdir *)
 ---
 

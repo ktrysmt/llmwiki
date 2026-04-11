@@ -2,7 +2,6 @@
 name: update
 description: Run import, lint, and auto-fix as a single pipeline to keep .llmwiki/ in sync with source files. Use when the user wants to refresh the entire knowledge base end-to-end in one command.
 argument-hint: "[path]"
-disable-model-invocation: true
 allowed-tools: Read Edit Write Bash(python3 *) Bash(mkdir *)
 ---
 

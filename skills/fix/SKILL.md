@@ -1,7 +1,6 @@
 ---
 name: fix
 description: Resolve contradictions, demote decayed pages, and promote dormant pages in .llmwiki/ based on lint results. Use after /llmwiki:lint detects issues or when the user explicitly wants to clean up the knowledge base.
-disable-model-invocation: true
 allowed-tools: Read Edit Bash(python3 *)
 ---
 

@@ -268,3 +268,4 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 - Added `/llmwiki:update` — single-pipeline runner that chains import -> lint -> fix while sharing deterministic preprocessing across phases
 - `/llmwiki:query` synthesis save is now exempt from approval (saved automatically with after-the-fact reporting)
 - Added YAML frontmatter to every `SKILL.md` (`name`, `description`, `allowed-tools`, `argument-hint`); side-effecting skills set `disable-model-invocation: true` to prevent automatic invocation
+- v0.3.4: Removed `disable-model-invocation: true` from `fix`, `update`, `import`, and `docs` skills. The flag stripped the `llmwiki:` namespace prefix from plugin slash commands (anthropics/claude-code#22345), causing `/llmwiki:fix` to register as `/fix` and break manual invocation
