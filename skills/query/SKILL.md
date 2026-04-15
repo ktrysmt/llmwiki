@@ -9,6 +9,22 @@ allowed-tools: Read Edit Write
 
 Query the knowledge base accumulated in .llmwiki/ and get answers.
 
+## Wiki State
+
+```!
+if [ -d .llmwiki ]; then
+  entity_count=$(find .llmwiki/entities -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+  echo "status: initialized"
+  echo "entity_pages: ${entity_count}"
+  echo "index: $(test -f .llmwiki/index.xml && echo 'exists' || echo 'missing')"
+else
+  echo "status: not_initialized (run /llmwiki:import first)"
+fi
+```
+
+If Wiki State shows not_initialized, inform the user and stop.
+If index is missing, inform the user to run /llmwiki:import first.
+
 ## Arguments
 
 `/llmwiki:query <question>`
@@ -50,12 +66,18 @@ Write procedure:
 5. Update frontmatter `updated` to today on both pages
 6. Append to `## Changelog` on both pages
 
+#### Wiki Page Schema
+
+```!
+cat "${CLAUDE_SKILL_DIR}/../import/llmwiki/schema.md" 2>/dev/null || echo "ERROR: schema.md not found"
+```
+
 #### 4b: New Entity Proposal
 
 Discovery: A concept not matching any existing entity was needed for the answer.
 
 Write procedure:
-1. Create a new page at `.llmwiki/entities/<category>/<entity-id>.md` following the template in `${CLAUDE_PLUGIN_ROOT}/skills/make/llmwiki/schema.md`
+1. Create a new page at `.llmwiki/entities/<category>/<entity-id>.md` following the template in the Wiki Page Schema section below
 2. Add to the corresponding category in `.llmwiki/entities.json` (lowercase kebab-case, aliases in both Japanese and English)
 3. Bidirectionally add to Relations of related existing pages
 

@@ -1,6 +1,6 @@
 {
   "name": "llmwiki",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Generate and maintain an entity-based knowledge wiki from any directory of text files using deterministic preprocessing + LLM compilation",
   "author": {
     "name": "ktrysmt"

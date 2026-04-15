@@ -269,3 +269,4 @@ test/
 - `/llmwiki:query` のシンセシス保存を承認不要化（自動保存し事後報告）
 - 全 `SKILL.md` に YAML frontmatter を追加 (`name`, `description`, `allowed-tools`, `argument-hint`)。副作用を持つスキルには `disable-model-invocation: true` を設定して自動起動を抑止
 - v0.3.4: `fix`, `update`, `import`, `docs` から `disable-model-invocation: true` を削除。プラグイン skill にこのフラグを付けると `llmwiki:` 名前空間プレフィックスが剥がれ (anthropics/claude-code#22345)、`/llmwiki:fix` が `/fix` として登録されてしまい手動起動が壊れるため
+- v0.3.5: 全スキルにシェル前処理 (`!` ブロック) を追加。プリフライト検証、Wiki状態確認、config事前ロード、schema埋め込み、入力パス検証、lintキャッシュ検出を実現。壊れていた `${CLAUDE_PLUGIN_ROOT}/skills/make/` パス参照を `${CLAUDE_SKILL_DIR}` ベースの `LLMWIKI_SCRIPTS` に置換

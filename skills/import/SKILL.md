@@ -9,6 +9,44 @@ allowed-tools: Read Edit Write Bash(python3 *) Bash(mkdir *)
 
 Recursively scans text files under a specified directory and generates/maintains an entity-based knowledge wiki through deterministic preprocessing + LLM compilation.
 
+## Environment
+
+```!
+python3 --version 2>&1 || echo "FATAL: python3 not found. Install Python >= 3.12."
+echo "LLMWIKI_SCRIPTS=$(cd "${CLAUDE_SKILL_DIR}/scripts" 2>/dev/null && pwd || echo NOT_FOUND)"
+```
+
+## Wiki State
+
+```!
+if [ -d .llmwiki ]; then
+  entity_count=$(find .llmwiki/entities -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+  echo "status: initialized"
+  echo "entity_pages: ${entity_count}"
+  echo "config: $(cat .llmwiki/config.json 2>/dev/null || echo 'none')"
+  echo "last_log:"
+  tail -3 .llmwiki/log.md 2>/dev/null || echo "  (empty)"
+else
+  echo "status: not_initialized"
+fi
+```
+
+## Input Validation
+
+```!
+if [ -n "$1" ]; then
+  if [ -d "$1" ]; then
+    file_count=$(find "$1" -type f 2>/dev/null | head -500 | wc -l | tr -d ' ')
+    echo "target: $1 (${file_count}+ files)"
+  else
+    echo "ERROR: path not found: $1"
+  fi
+fi
+```
+
+If the Environment section shows FATAL or LLMWIKI_SCRIPTS=NOT_FOUND, inform the user and stop.
+If Input Validation shows ERROR, inform the user and stop.
+
 ## Prerequisites
 
 - Python >= 3.12
@@ -66,7 +104,7 @@ This guarantees that subsequent steps (index generation, preprocessing, wiki pag
 ### Step 0-1: Index Generation
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/make/scripts/makeindex.py --llmwiki-dir .llmwiki
+python3 ${LLMWIKI_SCRIPTS}/makeindex.py --llmwiki-dir .llmwiki
 ```
 
 Generates a summary catalog from wiki pages under `.llmwiki/entities/` as `.llmwiki/index.xml`.
@@ -74,7 +112,7 @@ Generates a summary catalog from wiki pages under `.llmwiki/entities/` as `.llmw
 ### Step 0-2: Preprocessing Execution
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/make/scripts/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_preprocess.xml
+python3 ${LLMWIKI_SCRIPTS}/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_preprocess.xml
 ```
 
 Performs the following and outputs XML:
@@ -93,6 +131,12 @@ Read `/tmp/llmwiki_preprocess.xml` and report to the user.
 - If `stats.missing_sources > 0`, report the disappeared sources and affected entities
 - If lint has issues, report the list
 
+## Wiki Page Schema
+
+```!
+cat "${CLAUDE_SKILL_DIR}/llmwiki/schema.md" 2>/dev/null || echo "ERROR: schema.md not found at ${CLAUDE_SKILL_DIR}/llmwiki/schema.md"
+```
+
 ## Phase 1: LLM Ingestion
 
 For each file in `new_files` and `updated_files`:
@@ -100,7 +144,7 @@ For each file in `new_files` and `updated_files`:
 1. Load file content with Read (LLM directly reads JSON/MD/CSV/HCL/YAML/sh)
 2. Determine `source_type` from the file path and content (see `schema.md` guidelines: primary / secondary / derived)
 3. Extract new entities and relationships in addition to dictionary-matched entities (`known_entities`)
-4. If a wiki page already exists, update it following the merge rules in `${CLAUDE_PLUGIN_ROOT}/skills/make/llmwiki/schema.md`. Otherwise create a new page from the template
+4. If a wiki page already exists, update it following the merge rules in the Wiki Page Schema section below. Otherwise create a new page from the template
 5. Add new entities to `.llmwiki/entities.json` (lowercase kebab-case, aliases in both Japanese and English)
 6. Add relationships bidirectionally (if adding A->B, also add B->A)
 7. Record the file's SHA-256 hash in frontmatter `sources[].sha256` and the determination result in `sources[].source_type`
@@ -135,7 +179,7 @@ Wiki page save location: `.llmwiki/entities/<category>/<entity-id>.md`
 ### Step 2-1: Re-run Lint
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/make/scripts/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_preprocess_post.xml
+python3 ${LLMWIKI_SCRIPTS}/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_preprocess_post.xml
 ```
 
 Read the result and check the lint section.

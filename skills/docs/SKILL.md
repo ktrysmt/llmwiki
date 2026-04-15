@@ -9,6 +9,22 @@ allowed-tools: Read Edit Write
 
 Generate structured documents on a specified theme based on knowledge in .llmwiki/.
 
+## Wiki State
+
+```!
+if [ -d .llmwiki ]; then
+  entity_count=$(find .llmwiki/entities -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+  echo "status: initialized"
+  echo "entity_pages: ${entity_count}"
+  echo "index: $(test -f .llmwiki/index.xml && echo 'exists' || echo 'missing')"
+else
+  echo "status: not_initialized (run /llmwiki:import first)"
+fi
+```
+
+If Wiki State shows not_initialized, inform the user and stop.
+If index is missing, inform the user to run /llmwiki:import first.
+
 ## Arguments
 
 `/llmwiki:docs <theme or question>`

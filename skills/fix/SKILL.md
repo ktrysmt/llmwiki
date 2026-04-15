@@ -8,6 +8,46 @@ allowed-tools: Read Edit Bash(python3 *)
 
 Fix issues detected by /llmwiki:lint: resolve contradictions, execute decay demotions, and promote dormant pages.
 
+## Environment
+
+```!
+python3 --version 2>&1 || echo "FATAL: python3 not found. Install Python >= 3.12."
+echo "LLMWIKI_SCRIPTS=$(cd "${CLAUDE_SKILL_DIR}/../import/scripts" 2>/dev/null && pwd || echo NOT_FOUND)"
+```
+
+## Wiki State
+
+```!
+if [ -d .llmwiki ]; then
+  entity_count=$(find .llmwiki/entities -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+  echo "status: initialized"
+  echo "entity_pages: ${entity_count}"
+  echo "config: $(cat .llmwiki/config.json 2>/dev/null || echo 'none')"
+  echo "last_log:"
+  tail -3 .llmwiki/log.md 2>/dev/null || echo "  (empty)"
+else
+  echo "status: not_initialized"
+fi
+```
+
+## Lint Cache
+
+```!
+if [ -f /tmp/llmwiki_lint.xml ]; then
+  mod_time=$(stat -f '%Sm' -t '%Y-%m-%d %H:%M' /tmp/llmwiki_lint.xml 2>/dev/null || stat -c '%y' /tmp/llmwiki_lint.xml 2>/dev/null | cut -d. -f1)
+  contradiction_count=$(grep -c '<contradiction' /tmp/llmwiki_lint.xml 2>/dev/null || echo 0)
+  echo "status: available"
+  echo "modified: ${mod_time}"
+  echo "contradictions: ${contradiction_count}"
+else
+  echo "status: not_found"
+fi
+```
+
+If the Environment section shows FATAL or LLMWIKI_SCRIPTS=NOT_FOUND, inform the user and stop.
+If Wiki State shows not_initialized, report "llmwiki not yet created" and stop.
+If Lint Cache shows available, skip preprocessing in Step 1 and use the existing file.
+
 ## Background
 
 Research has shown that unresolved contradictions in context degrade LLM accuracy. Xie et al. (2024, "Knowledge Conflicts for LLMs: A Survey", EMNLP 2024) demonstrated that inter-context knowledge conflicts significantly reduce LLM reliability. Chroma Research's "Context Rot" study confirmed performance degradation across 18 frontier models as context noise increases. Unresolved contradictions in the wiki therefore degrade the accuracy of all LLM operations that reference it.
@@ -28,7 +68,7 @@ Run preprocessing only if the file does not exist:
 Resolve `input_dir`: read from `.llmwiki/config.json`, or fall back to the project root (cwd).
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/make/scripts/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_lint.xml
+python3 ${LLMWIKI_SCRIPTS}/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_lint.xml
 ```
 
 Retrieve contradiction pages from the `<contradictions>` section in `/tmp/llmwiki_lint.xml`.
@@ -36,7 +76,7 @@ Retrieve contradiction pages from the `<contradictions>` section in `/tmp/llmwik
 ### Step 2: Detect Decay/Promotion Candidates
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/make/scripts/llmwiki_decay.py --llmwiki-dir .llmwiki --threshold-days 90
+python3 ${LLMWIKI_SCRIPTS}/llmwiki_decay.py --llmwiki-dir .llmwiki --threshold-days 90
 ```
 
 Additionally, scan for promotion candidates from the preprocess XML output: pages with `status: dormant` but references > 0 or recent source updates.

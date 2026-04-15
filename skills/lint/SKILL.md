@@ -8,6 +8,31 @@ allowed-tools: Read Edit Bash(python3 *)
 
 Check the health of .llmwiki/ and report issues.
 
+## Environment
+
+```!
+python3 --version 2>&1 || echo "FATAL: python3 not found. Install Python >= 3.12."
+echo "LLMWIKI_SCRIPTS=$(cd "${CLAUDE_SKILL_DIR}/../import/scripts" 2>/dev/null && pwd || echo NOT_FOUND)"
+```
+
+## Wiki State
+
+```!
+if [ -d .llmwiki ]; then
+  entity_count=$(find .llmwiki/entities -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+  echo "status: initialized"
+  echo "entity_pages: ${entity_count}"
+  echo "config: $(cat .llmwiki/config.json 2>/dev/null || echo 'none')"
+  echo "last_log:"
+  tail -3 .llmwiki/log.md 2>/dev/null || echo "  (empty)"
+else
+  echo "status: not_initialized"
+fi
+```
+
+If the Environment section shows FATAL or LLMWIKI_SCRIPTS=NOT_FOUND, inform the user and stop.
+If Wiki State shows not_initialized, report "llmwiki not yet created" and stop.
+
 ## Prerequisites
 
 - Python >= 3.12
@@ -21,13 +46,13 @@ If `.llmwiki/` does not exist, report "llmwiki not yet created" and stop.
 Resolve `input_dir`: read from `.llmwiki/config.json`, or fall back to the project root (cwd).
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/make/scripts/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_lint.xml
+python3 ${LLMWIKI_SCRIPTS}/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_lint.xml
 ```
 
 ### Step 2: Detect Decay Candidates
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/make/scripts/llmwiki_decay.py --llmwiki-dir .llmwiki --threshold-days 90
+python3 ${LLMWIKI_SCRIPTS}/llmwiki_decay.py --llmwiki-dir .llmwiki --threshold-days 90
 ```
 
 ### Step 3: Report
