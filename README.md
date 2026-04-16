@@ -33,19 +33,18 @@ Restart Claude Code after updating to apply the new version.
 .claude-plugin/
   plugin.json               # Plugin manifest
 skills/
-  import/                   # /llmwiki:import -- Wiki generation & update
-    SKILL.md
+  import/                   # Shared resources (scripts, schema)
     scripts/
       llmwiki_preprocess.py # Deterministic preprocessing + sha256 change detection
       makeindex.py          # Wiki catalog generation
       llmwiki_decay.py      # Decay candidate detection
     llmwiki/
       schema.md             # Wiki page template + merge rules
-  query/                    # /llmwiki:query -- Query the wiki in natural language
+  update/                   # /llmwiki:update -- Full pipeline: import + lint + fix
     SKILL.md
-  lint/                     # /llmwiki:lint -- Health check (detection & reporting only)
+  lint/                     # /llmwiki:lint -- Health check (read-only detection & reporting)
     SKILL.md
-  fix/                      # /llmwiki:fix -- Resolve contradictions, decay demotions & promotions
+  query/                    # /llmwiki:query -- Query the wiki + synthesis save
     SKILL.md
   docs/                     # /llmwiki:docs -- Generate documents from the wiki
     SKILL.md
@@ -68,23 +67,23 @@ Running a skill generates `.llmwiki/` in the project directory:
 
 | Skill | Purpose | Writes |
 |---|---|---|
-| /llmwiki:import | Generate & update wiki from input files | Automatic (including dormant promotion) |
-| /llmwiki:query | Query the wiki in natural language | Only on feedback (requires approval) |
+| /llmwiki:update | Full pipeline: import + lint + fix | Automatic + requires approval |
 | /llmwiki:lint | Health check (detection & reporting only) | None (read-only) |
-| /llmwiki:fix | Resolve contradictions, decay demotions & promotions | Requires approval |
+| /llmwiki:query | Query the wiki in natural language | Synthesis save (auto) + feedback (requires approval) |
 | /llmwiki:docs | Generate documents by specifying a theme | None (external output only) |
 
 ## Usage
 
-### /llmwiki:import -- Wiki Generation & Update
+### /llmwiki:update -- Full Pipeline
 
 ```
-/llmwiki:import              # scans the project root
-/llmwiki:import ~/work/dump  # scans an external directory
+/llmwiki:update              # scans the project root
+/llmwiki:update ~/work/dump  # scans an external directory
 ```
 
-Processes in order: Phase 0 (preprocessing) -> Phase 1 (LLM ingestion) -> Phase 2 (validation).
-Output is written to `.llmwiki/` at the project root.
+Runs import, lint, and fix as a single pipeline. The only skill that modifies the wiki.
+
+Processes in order: Phase 0 (preprocessing) -> Phase 1 (LLM ingestion) -> Phase 2 (re-scan) -> Phase 3 (auto-fix) -> Phase 4 (approval batch) -> Phase 5 (report).
 
 The input directory argument is optional. When omitted, it falls back to the path saved in `.llmwiki/config.json`, or defaults to the project root. The path used is always persisted to `config.json` for subsequent runs.
 
@@ -94,9 +93,24 @@ Records SHA-256 hashes of source files in frontmatter to detect content changes 
 - Source disappearance: Recorded in Source Files (page is not deleted)
 - Dormant page: Automatically reactivated when new sources are ingested
 
-Determines and records the `source_type` of each source based on file path and content (primary > secondary > derived).
+Classifies contradictions using llmwiki's practical taxonomy (temporal / scope / genuine / none). Safe resolutions are auto-applied; genuine contradictions require human approval. Presents priority candidates based on source_type trust order (primary > secondary > derived).
 
 Supported formats: `.json`, `.md`, `.csv`, `.tsv`, `.yaml`, `.yml`, `.hcl`, `.sh`
+
+### /llmwiki:lint -- Health Check
+
+```
+/llmwiki:lint
+```
+
+Read-only detection and reporting. Does not modify the wiki.
+
+Detects the following and proposes corrective actions:
+- Orphan pages, broken links, stale pages, uncovered files
+- Contradictions (count of "needs review" flags; guides to /llmwiki:update)
+- Decay candidates (pages with 0 references and not updated for 90+ days)
+- Promotion candidates (dormant pages with references > 0)
+- Cross-entity contradictions, contradiction statistics, provenance gaps
 
 ### /llmwiki:query -- Query the Wiki
 
@@ -105,29 +119,8 @@ Supported formats: `.json`, `.md`, `.csv`, `.tsv`, `.yaml`, `.yml`, `.hcl`, `.sh
 ```
 
 Ask questions in natural language against the knowledge accumulated in the wiki.
+Valuable synthesized answers are automatically saved to `.llmwiki/syntheses/` to accumulate knowledge.
 Relationships, new entities, contradictions, and dormant promotions discovered during answering are fed back to the wiki upon user approval.
-Valuable synthesized answers can be saved to `.llmwiki/syntheses/` to accumulate knowledge.
-
-### /llmwiki:lint -- Health Check + Decay
-
-```
-/llmwiki:lint
-```
-
-Detects the following and proposes corrective actions:
-- Orphan pages, broken links, stale pages, uncovered files
-- Contradictions (count of "needs review" flags; guides to /llmwiki:fix)
-- Decay candidates (pages with 0 references and not updated for 90+ days)
-- Promotion candidates (dormant pages with references > 0)
-
-### /llmwiki:fix -- Issue Resolution
-
-```
-/llmwiki:fix
-```
-
-Resolves issues detected by lint: classifies contradictions using llmwiki's practical taxonomy (temporal / scope / genuine / none), executes decay demotions and dormant promotions.
-When resolving genuine contradictions, presents priority candidates based on source_type trust order (primary > secondary > derived).
 
 ### /llmwiki:docs -- Document Generation
 
@@ -135,7 +128,7 @@ When resolving genuine contradictions, presents priority candidates based on sou
 /llmwiki:docs Production environment architecture overview
 ```
 
-Combines wiki knowledge to generate structured documents on a specified theme.
+Combines wiki knowledge to generate structured documents on a specified theme. Read-only -- does not modify the wiki.
 
 #### Bulk generation with Agent Teams
 
@@ -166,7 +159,7 @@ No additional skills or configuration are needed -- the flexibility comes from t
 
 ## Configuration
 
-Settings are stored in `.llmwiki/config.json` (created automatically on first `/llmwiki:import` run). Edit this file directly to customize behavior.
+Settings are stored in `.llmwiki/config.json` (created automatically on first `/llmwiki:update` run). Edit this file directly to customize behavior.
 
 ```json
 {
@@ -208,7 +201,7 @@ Patterns are applied after `.gitignore` filtering, so there is no need to duplic
 - Contradictory information is retained with both values dated and flagged. The LLM does not resolve them
 - Entity IDs use lowercase kebab-case; aliases include both Japanese and English
 - source_type trust order: primary > secondary > derived. Determined from both path and content
-- /llmwiki:fix and /llmwiki:query feedback require human approval
+- /llmwiki:update (genuine contradictions, decay demotions) and /llmwiki:query feedback require human approval
 - All skill operations are recorded chronologically in `.llmwiki/log.md`
 
 ## `.llmwiki/` Management
@@ -222,7 +215,7 @@ Track `.llmwiki/` in git when humans run skills directly. This ensures:
 - Stable wiki state shared across team members
 - Rollback via `git checkout` / `git revert`
 - Reproducible `/llmwiki:docs` output pinned to a specific commit
-- Consistent `/llmwiki:fix` resolution history
+- Consistent `/llmwiki:update` resolution history
 
 ### Pattern B: CI cache (for CI-only workflows)
 
@@ -270,3 +263,11 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 - Added YAML frontmatter to every `SKILL.md` (`name`, `description`, `allowed-tools`, `argument-hint`); side-effecting skills set `disable-model-invocation: true` to prevent automatic invocation
 - v0.3.4: Removed `disable-model-invocation: true` from `fix`, `update`, `import`, and `docs` skills. The flag stripped the `llmwiki:` namespace prefix from plugin slash commands (anthropics/claude-code#22345), causing `/llmwiki:fix` to register as `/fix` and break manual invocation
 - v0.3.5: Added shell preprocessing (`!` blocks) to all skills for pre-flight validation, wiki state inspection, config pre-loading, schema embedding, input path validation, and lint cache detection. Replaced broken `${CLAUDE_PLUGIN_ROOT}/skills/make/` path references with `${CLAUDE_SKILL_DIR}`-based resolution via `LLMWIKI_SCRIPTS`
+
+### v0.4
+
+- Consolidated 6 skills into 4: removed `/llmwiki:import` and `/llmwiki:fix` as standalone skills
+- `/llmwiki:update` is now the single entry point for all wiki modifications (import + lint + fix pipeline)
+- `/llmwiki:lint` remains read-only (detection and reporting only); fix proposals now guide to `/llmwiki:update`
+- `/llmwiki:query` and `/llmwiki:docs` unchanged in behavior
+- `skills/import/` directory retained as shared resources (scripts, schema) used by other skills

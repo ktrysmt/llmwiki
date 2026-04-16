@@ -55,14 +55,14 @@ When updating an existing page:
 
 Trust order: primary > secondary > derived
 
-The `source_type` of a source is determined by the LLM reading both the file path and content during llmwiki:import Phase 1. Provenance information is delegated to `sources[].path`.
+The `source_type` of a source is determined by the LLM reading both the file path and content during llmwiki:update Phase 1. Provenance information is delegated to `sources[].path`.
 
 Determination guidelines:
 - primary: Official configuration files, IaC definitions, official documentation, API responses, etc. Authoritative and highly accurate descriptions
 - secondary: Meeting notes, chat logs, unofficial documentation, personal notes, etc. Information is useful but may require verification
 - derived: Secondary documents synthesized by llmwiki:query or llmwiki:docs. Integrations of information from source entities
 
-During contradiction resolution (llmwiki:fix), values from higher-trust sources are presented as priority candidates.
+During contradiction resolution (llmwiki:update Phase 3), values from higher-trust sources are presented as priority candidates.
 
 ## Fact-Level Provenance
 
@@ -77,8 +77,8 @@ Each Key Fact should include an inline provenance tag indicating which source fi
 - `YYYY-MM-DD`: The date the fact was ingested from this source
 
 Facts without provenance tags are treated as legacy data. They are valid but cannot participate in automated trust-based contradiction resolution. Provenance is backfilled during:
-- `/llmwiki:import` Phase 1: New and updated facts receive provenance at ingestion time
-- `/llmwiki:fix` Step 6a: When resolving contradictions, all facts on the page are checked and missing provenance is backfilled where the source can be determined from the page's `sources[]` frontmatter
+- `/llmwiki:update` Phase 1: New and updated facts receive provenance at ingestion time
+- `/llmwiki:update` Phase 3 (auto-fix): When resolving contradictions, all facts on the page are checked and missing provenance is backfilled where the source can be determined from the page's `sources[]` frontmatter
 
 ## Entity ID Convention
 

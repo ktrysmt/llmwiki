@@ -33,19 +33,18 @@ claude plugin update llmwiki@ktrysmt
 .claude-plugin/
   plugin.json               # プラグインマニフェスト
 skills/
-  import/                   # /llmwiki:import -- Wiki生成・更新
-    SKILL.md
+  import/                   # 共有リソース（スクリプト、スキーマ）
     scripts/
       llmwiki_preprocess.py # 決定論的前処理 + sha256変更検出
       makeindex.py          # Wikiカタログ生成
       llmwiki_decay.py      # Decay候補検出
     llmwiki/
       schema.md             # Wikiページのテンプレート+マージルール
-  query/                    # /llmwiki:query -- 自然言語でWikiに質問
+  update/                   # /llmwiki:update -- 全パイプライン: import + lint + fix
     SKILL.md
-  lint/                     # /llmwiki:lint -- 健全性チェック(検出・報告のみ)
+  lint/                     # /llmwiki:lint -- 健全性チェック（読み取り専用の検出・報告）
     SKILL.md
-  fix/                      # /llmwiki:fix -- 矛盾解決・降格・昇格の実行
+  query/                    # /llmwiki:query -- 自然言語でWikiに質問 + synthesis保存
     SKILL.md
   docs/                     # /llmwiki:docs -- Wikiからドキュメント生成
     SKILL.md
@@ -68,23 +67,23 @@ skills/
 
 | スキル | 用途 | 書き込み |
 |---|---|---|
-| /llmwiki:import | 入力ファイルからWikiを生成・更新 | 自動(dormant promotion含む) |
-| /llmwiki:query | Wikiに自然言語で質問し回答を得る | フィードバック時のみ(要承認) |
+| /llmwiki:update | 全パイプライン: import + lint + fix | 自動 + 要承認 |
 | /llmwiki:lint | 健全性チェック(検出・報告のみ) | なし(読み取り専用) |
-| /llmwiki:fix | 矛盾解決・降格・昇格の実行 | 要承認 |
+| /llmwiki:query | Wikiに自然言語で質問し回答を得る | synthesis保存(自動) + フィードバック(要承認) |
 | /llmwiki:docs | テーマ指定でドキュメント生成 | なし(外部出力のみ) |
 
 ## 使い方
 
-### /llmwiki:import -- Wiki生成・更新
+### /llmwiki:update -- 全パイプライン
 
 ```
-/llmwiki:import              # プロジェクトルートをスキャン
-/llmwiki:import ~/work/dump  # 外部ディレクトリをスキャン
+/llmwiki:update              # プロジェクトルートをスキャン
+/llmwiki:update ~/work/dump  # 外部ディレクトリをスキャン
 ```
 
-Phase 0（前処理） -> Phase 1（LLMインジェスト） -> Phase 2（検証） の順に処理。
-出力先はプロジェクトルートの `.llmwiki/`。
+import, lint, fixを単一パイプラインで実行する。Wikiを変更する唯一のスキル。
+
+Phase 0（前処理） -> Phase 1（LLMインジェスト） -> Phase 2（再スキャン） -> Phase 3（自動修正） -> Phase 4（承認バッチ） -> Phase 5（レポート）の順に処理。
 
 入力ディレクトリの引数は省略可能。省略時は `.llmwiki/config.json` に保存済みのパス、またはプロジェクトルートがデフォルトとなる。使用したパスは常に `config.json` に永続化される。
 
@@ -94,9 +93,24 @@ Phase 0（前処理） -> Phase 1（LLMインジェスト） -> Phase 2（検証
 - ソース消失: Source Filesに記録（ページは削除しない）
 - dormant ページ: 新規ソースがインジェストされた場合に自動で active に復帰
 
-各ソースの `source_type` をファイルのパスと内容から判定し記録する（primary > secondary > derived）。
+矛盾を実用分類（temporal / scope / genuine / none）に分類。安全な解消は自動適用。genuine型はsource_typeの信頼度順序（primary > secondary > derived）を考慮して優先候補を提示し、承認を求める。
 
 対象形式: `.json`, `.md`, `.csv`, `.tsv`, `.yaml`, `.yml`, `.hcl`, `.sh`
+
+### /llmwiki:lint -- 健全性チェック
+
+```
+/llmwiki:lint
+```
+
+読み取り専用の検出・報告。Wikiは変更しない。
+
+以下を検出し修正アクションを提案する:
+- orphan pages, broken links, stale pages, uncovered files
+- contradictions（「needs review」フラグの件数。/llmwiki:update への導線を案内）
+- decay candidates（被参照0 かつ90日以上未更新のページ）
+- promotion candidates（dormant だが被参照 > 0 のページ）
+- cross-entity contradictions, contradiction statistics, provenance gaps
 
 ### /llmwiki:query -- Wikiへの質問
 
@@ -105,29 +119,8 @@ Phase 0（前処理） -> Phase 1（LLMインジェスト） -> Phase 2（検証
 ```
 
 Wikiに蓄積された知識に対して自然言語で質問し、回答を得る。
+価値ある合成回答は `.llmwiki/syntheses/` に自動保存し知識を蓄積する。
 回答過程で発見された関係性・新規エンティティ・矛盾・dormant promotionはユーザー承認の上でWikiにフィードバックされる。
-価値ある合成回答は `.llmwiki/syntheses/` に保存して知識を蓄積できる。
-
-### /llmwiki:lint -- 健全性チェック + Decay
-
-```
-/llmwiki:lint
-```
-
-以下を検出し修正アクションを提案する:
-- orphan pages, broken links, stale pages, uncovered files
-- contradictions（「needs review」フラグの件数。/llmwiki:fix への導線を案内）
-- decay candidates（被参照0 かつ90日以上未更新のページ）
-- promotion candidates（dormant だが被参照 > 0 のページ）
-
-### /llmwiki:fix -- 問題の修正
-
-```
-/llmwiki:fix
-```
-
-lintが検出した問題を修正する: 矛盾を実用分類（temporal / scope / genuine / none）に分類して解決し、decay降格とdormant昇格を実行する。
-genuine 型の矛盾解決時は source_type の信頼度順序（primary > secondary > derived）を考慮して優先候補を提示する。
 
 ### /llmwiki:docs -- ドキュメント生成
 
@@ -135,7 +128,7 @@ genuine 型の矛盾解決時は source_type の信頼度順序（primary > seco
 /llmwiki:docs 本番環境のアーキテクチャ概要
 ```
 
-Wikiの知識を組み合わせ、テーマ指定の構造化ドキュメントを生成する。
+Wikiの知識を組み合わせ、テーマ指定の構造化ドキュメントを生成する。読み取り専用 -- Wikiは変更しない。
 
 #### Agent Teams によるバルク生成
 
@@ -166,7 +159,7 @@ test/
 
 ## 設定
 
-設定は `.llmwiki/config.json` に保存される（初回の `/llmwiki:import` 実行時に自動生成）。カスタマイズはこのファイルを直接編集する。
+設定は `.llmwiki/config.json` に保存される（初回の `/llmwiki:update` 実行時に自動生成）。カスタマイズはこのファイルを直接編集する。
 
 ```json
 {
@@ -208,7 +201,7 @@ test/
 - 矛盾する情報は両値を日付付きで保持しフラグする。LLMは解決しない
 - エンティティIDは小文字 kebab-case、aliases は日英両方
 - source_type の信頼度順序: primary > secondary > derived。判定はパス+内容の両方から行う
-- /llmwiki:fix, /llmwiki:query のフィードバックは人間の承認が必要
+- /llmwiki:update（genuine矛盾、decay降格）と /llmwiki:query のフィードバックは人間の承認が必要
 - 全スキルの操作は `.llmwiki/log.md` に時系列で記録される
 
 ## `.llmwiki/` の管理
@@ -222,7 +215,7 @@ test/
 - チームメンバー間でWiki状態を共有できる
 - `git checkout` / `git revert` によるロールバック
 - `/llmwiki:docs` の出力を特定の commit に紐づけて再現できる
-- `/llmwiki:fix` の解決履歴が保持される
+- `/llmwiki:update` の解決履歴が保持される
 
 ### パターン B: CI キャッシュ（CI 専用ワークフロー）
 
@@ -270,3 +263,11 @@ test/
 - 全 `SKILL.md` に YAML frontmatter を追加 (`name`, `description`, `allowed-tools`, `argument-hint`)。副作用を持つスキルには `disable-model-invocation: true` を設定して自動起動を抑止
 - v0.3.4: `fix`, `update`, `import`, `docs` から `disable-model-invocation: true` を削除。プラグイン skill にこのフラグを付けると `llmwiki:` 名前空間プレフィックスが剥がれ (anthropics/claude-code#22345)、`/llmwiki:fix` が `/fix` として登録されてしまい手動起動が壊れるため
 - v0.3.5: 全スキルにシェル前処理 (`!` ブロック) を追加。プリフライト検証、Wiki状態確認、config事前ロード、schema埋め込み、入力パス検証、lintキャッシュ検出を実現。壊れていた `${CLAUDE_PLUGIN_ROOT}/skills/make/` パス参照を `${CLAUDE_SKILL_DIR}` ベースの `LLMWIKI_SCRIPTS` に置換
+
+### v0.4
+
+- 6スキルを4スキルに統合: `/llmwiki:import` と `/llmwiki:fix` を単独スキルから廃止
+- `/llmwiki:update` がWiki変更の単一エントリポイント（import + lint + fixパイプライン）
+- `/llmwiki:lint` は読み取り専用を維持（検出・報告のみ）。修正提案は `/llmwiki:update` へ誘導
+- `/llmwiki:query` と `/llmwiki:docs` の動作は変更なし
+- `skills/import/` ディレクトリは共有リソース（スクリプト、スキーマ）として存続

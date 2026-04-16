@@ -18,12 +18,12 @@ if [ -d .llmwiki ]; then
   echo "entity_pages: ${entity_count}"
   echo "index: $(test -f .llmwiki/index.xml && echo 'exists' || echo 'missing')"
 else
-  echo "status: not_initialized (run /llmwiki:import first)"
+  echo "status: not_initialized (run /llmwiki:update first)"
 fi
 ```
 
 If Wiki State shows not_initialized, inform the user and stop.
-If index is missing, inform the user to run /llmwiki:import first.
+If index is missing, inform the user to run /llmwiki:update first.
 
 ## Arguments
 
