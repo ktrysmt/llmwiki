@@ -1,7 +1,7 @@
 ---
 name: lint
 description: Audit .llmwiki/ knowledge base health and report issues like orphan pages, broken links, stale pages, contradictions, cross-entity contradictions, provenance gaps, and decay candidates. Use when the user wants to check wiki state or before running /llmwiki:update.
-allowed-tools: Read Edit Bash(python3 *)
+allowed-tools: Read Edit Bash(llmwiki-preprocess *) Bash(llmwiki-decay *)
 ---
 
 # /llmwiki:lint
@@ -11,8 +11,13 @@ Check the health of .llmwiki/ and report issues.
 ## Environment
 
 ```!
-python3 --version 2>&1 || echo "FATAL: python3 not found. Install Python >= 3.12."
-echo "LLMWIKI_SCRIPTS=$(cd "${CLAUDE_SKILL_DIR}/../import/scripts" 2>/dev/null && pwd || echo NOT_FOUND)"
+for cmd in llmwiki-preprocess llmwiki-decay; do
+  if command -v "$cmd" >/dev/null 2>&1; then
+    echo "$cmd: ok"
+  else
+    echo "FATAL: $cmd not found on PATH. Reinstall the llmwiki plugin."
+  fi
+done
 ```
 
 ## Wiki State
@@ -30,12 +35,12 @@ else
 fi
 ```
 
-If the Environment section shows FATAL or LLMWIKI_SCRIPTS=NOT_FOUND, inform the user and stop.
+If the Environment section shows FATAL, inform the user and stop.
 If Wiki State shows not_initialized, report "llmwiki not yet created" and stop.
 
 ## Prerequisites
 
-- Python >= 3.12
+- Python >= 3.12 (required by the bundled scripts on PATH: `llmwiki-preprocess`, `llmwiki-decay`)
 
 ## Procedure
 
@@ -46,13 +51,13 @@ If `.llmwiki/` does not exist, report "llmwiki not yet created" and stop.
 Resolve `input_dir`: read from `.llmwiki/config.json`, or fall back to the project root (cwd).
 
 ```bash
-python3 ${LLMWIKI_SCRIPTS}/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_lint.xml
+llmwiki-preprocess <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_lint.xml
 ```
 
 ### Step 2: Detect Decay Candidates
 
 ```bash
-python3 ${LLMWIKI_SCRIPTS}/llmwiki_decay.py --llmwiki-dir .llmwiki --threshold-days 90
+llmwiki-decay --llmwiki-dir .llmwiki --threshold-days 90
 ```
 
 ### Step 3: Report

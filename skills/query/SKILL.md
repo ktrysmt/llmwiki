@@ -69,7 +69,7 @@ Write procedure:
 #### Wiki Page Schema
 
 ```!
-cat "${CLAUDE_SKILL_DIR}/../import/llmwiki/schema.md" 2>/dev/null || echo "ERROR: schema.md not found"
+cat "${CLAUDE_SKILL_DIR}/../../shared/schema.md" 2>/dev/null || echo "ERROR: schema.md not found"
 ```
 
 #### 4b: New Entity Proposal

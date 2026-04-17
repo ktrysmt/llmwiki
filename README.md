@@ -32,14 +32,13 @@ Restart Claude Code after updating to apply the new version.
 ```
 .claude-plugin/
   plugin.json               # Plugin manifest
+bin/                        # Executables auto-added to PATH by the plugin harness
+  llmwiki-preprocess        # Deterministic preprocessing + sha256 change detection
+  llmwiki-makeindex         # Wiki catalog generation
+  llmwiki-decay             # Decay candidate detection
+shared/
+  schema.md                 # Wiki page template + merge rules (read by SKILL.md preprocess)
 skills/
-  import/                   # Shared resources (scripts, schema)
-    scripts/
-      llmwiki_preprocess.py # Deterministic preprocessing + sha256 change detection
-      makeindex.py          # Wiki catalog generation
-      llmwiki_decay.py      # Decay candidate detection
-    llmwiki/
-      schema.md             # Wiki page template + merge rules
   update/                   # /llmwiki:update -- Full pipeline: import + lint + fix
     SKILL.md
   lint/                     # /llmwiki:lint -- Health check (read-only detection & reporting)
@@ -271,3 +270,9 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 - `/llmwiki:lint` remains read-only (detection and reporting only); fix proposals now guide to `/llmwiki:update`
 - `/llmwiki:query` and `/llmwiki:docs` unchanged in behavior
 - `skills/import/` directory retained as shared resources (scripts, schema) used by other skills
+
+### v0.5
+
+- Moved shared scripts out of `skills/import/scripts/` into top-level `bin/` (`llmwiki-preprocess`, `llmwiki-makeindex`, `llmwiki-decay`) so they are invoked via PATH rather than `${LLMWIKI_SCRIPTS}`. Fixes intermittent `/makeindex.py: No such file or directory` errors caused by env vars not propagating from SKILL.md `!` preprocess blocks into Bash tool calls
+- Moved `skills/import/llmwiki/schema.md` to top-level `shared/schema.md`
+- Removed the `skills/import/` directory (it was not a real skill; the folder predated the plugin's shared-resource conventions)

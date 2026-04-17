@@ -32,14 +32,13 @@ claude plugin update llmwiki@ktrysmt
 ```
 .claude-plugin/
   plugin.json               # プラグインマニフェスト
+bin/                        # プラグインハーネスが PATH に自動追加する実行ファイル
+  llmwiki-preprocess        # 決定論的前処理 + sha256変更検出
+  llmwiki-makeindex         # Wikiカタログ生成
+  llmwiki-decay             # Decay候補検出
+shared/
+  schema.md                 # Wikiページのテンプレート+マージルール (SKILL.md の preprocess で参照)
 skills/
-  import/                   # 共有リソース（スクリプト、スキーマ）
-    scripts/
-      llmwiki_preprocess.py # 決定論的前処理 + sha256変更検出
-      makeindex.py          # Wikiカタログ生成
-      llmwiki_decay.py      # Decay候補検出
-    llmwiki/
-      schema.md             # Wikiページのテンプレート+マージルール
   update/                   # /llmwiki:update -- 全パイプライン: import + lint + fix
     SKILL.md
   lint/                     # /llmwiki:lint -- 健全性チェック（読み取り専用の検出・報告）
@@ -271,3 +270,9 @@ test/
 - `/llmwiki:lint` は読み取り専用を維持（検出・報告のみ）。修正提案は `/llmwiki:update` へ誘導
 - `/llmwiki:query` と `/llmwiki:docs` の動作は変更なし
 - `skills/import/` ディレクトリは共有リソース（スクリプト、スキーマ）として存続
+
+### v0.5
+
+- 共有スクリプトを `skills/import/scripts/` からトップレベルの `bin/` (`llmwiki-preprocess`, `llmwiki-makeindex`, `llmwiki-decay`) に移動。`${LLMWIKI_SCRIPTS}` 経由ではなく PATH 経由で呼び出す形式に変更。SKILL.md の `!` preprocess ブロックで設定した環境変数が後続の Bash ツール呼び出しに伝播せず、`/makeindex.py: No such file or directory` が散発的に発生していた問題を解消
+- `skills/import/llmwiki/schema.md` をトップレベルの `shared/schema.md` へ移動
+- `skills/import/` ディレクトリを廃止（SKILL.md を持たず実質スキルではなかったため）

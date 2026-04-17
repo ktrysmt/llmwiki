@@ -2,7 +2,7 @@
 name: update
 description: Run import, lint, and auto-fix as a single pipeline to keep .llmwiki/ in sync with source files. Use when the user wants to refresh the entire knowledge base end-to-end in one command.
 argument-hint: "[path]"
-allowed-tools: Read Edit Write Bash(python3 *) Bash(mkdir *)
+allowed-tools: Read Edit Write Bash(llmwiki-makeindex *) Bash(llmwiki-preprocess *) Bash(llmwiki-decay *) Bash(mkdir *)
 ---
 
 # /llmwiki:update
@@ -12,8 +12,13 @@ Run import, lint, and fix as a single pipeline. Eliminates redundant preprocessi
 ## Environment
 
 ```!
-python3 --version 2>&1 || echo "FATAL: python3 not found. Install Python >= 3.12."
-echo "LLMWIKI_SCRIPTS=$(cd "${CLAUDE_SKILL_DIR}/../import/scripts" 2>/dev/null && pwd || echo NOT_FOUND)"
+for cmd in llmwiki-makeindex llmwiki-preprocess llmwiki-decay; do
+  if command -v "$cmd" >/dev/null 2>&1; then
+    echo "$cmd: ok"
+  else
+    echo "FATAL: $cmd not found on PATH. Reinstall the llmwiki plugin."
+  fi
+done
 ```
 
 ## Wiki State
@@ -44,12 +49,12 @@ if [ -n "$1" ]; then
 fi
 ```
 
-If the Environment section shows FATAL or LLMWIKI_SCRIPTS=NOT_FOUND, inform the user and stop.
+If the Environment section shows FATAL, inform the user and stop.
 If Input Validation shows ERROR, inform the user and stop.
 
 ## Prerequisites
 
-- Python >= 3.12
+- Python >= 3.12 (required by the bundled scripts on PATH: `llmwiki-makeindex`, `llmwiki-preprocess`, `llmwiki-decay`)
 
 ## Arguments
 
@@ -74,13 +79,13 @@ mkdir -p .llmwiki/entities
 ### Step 0-1: Index Generation
 
 ```bash
-python3 ${LLMWIKI_SCRIPTS}/makeindex.py --llmwiki-dir .llmwiki
+llmwiki-makeindex --llmwiki-dir .llmwiki
 ```
 
 ### Step 0-2: Preprocessing
 
 ```bash
-python3 ${LLMWIKI_SCRIPTS}/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_preprocess.xml
+llmwiki-preprocess <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_preprocess.xml
 ```
 
 ### Step 0-3: Triage
@@ -98,7 +103,7 @@ Otherwise, proceed automatically.
 ## Wiki Page Schema
 
 ```!
-cat "${CLAUDE_SKILL_DIR}/../import/llmwiki/schema.md" 2>/dev/null || echo "ERROR: schema.md not found"
+cat "${CLAUDE_SKILL_DIR}/../../shared/schema.md" 2>/dev/null || echo "ERROR: schema.md not found"
 ```
 
 ## Phase 1: LLM Ingestion
@@ -147,13 +152,13 @@ If Phase 1 cannot complete all files, proceed to Phase 2 with processed files on
 ### Step 2-1: Re-run Preprocessing
 
 ```bash
-python3 ${LLMWIKI_SCRIPTS}/llmwiki_preprocess.py <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_lint.xml
+llmwiki-preprocess <input_dir> --llmwiki-dir .llmwiki > /tmp/llmwiki_lint.xml
 ```
 
 ### Step 2-2: Detect Decay Candidates
 
 ```bash
-python3 ${LLMWIKI_SCRIPTS}/llmwiki_decay.py --llmwiki-dir .llmwiki --threshold-days 90
+llmwiki-decay --llmwiki-dir .llmwiki --threshold-days 90
 ```
 
 ### Step 2-3: Synthesis Quality Check
@@ -248,7 +253,7 @@ For decay demotion:
 ### Step 5-1: Regenerate Index
 
 ```bash
-python3 ${LLMWIKI_SCRIPTS}/makeindex.py --llmwiki-dir .llmwiki
+llmwiki-makeindex --llmwiki-dir .llmwiki
 ```
 
 ### Step 5-2: Final Report
