@@ -1,6 +1,6 @@
 ---
 name: lint
-description: Audit .llmwiki/ knowledge base health and report issues like orphan pages, broken links, stale pages, contradictions, cross-entity contradictions, provenance gaps, and decay candidates. Use when the user wants to check wiki state or before running /llmwiki:update.
+description: Audit .llmwiki/ knowledge base health and report issues like orphan pages, broken links, stale pages, contradictions, cross-entity contradictions, provenance gaps, and decay candidates. Use when the user wants to check wiki state or before running /llmwiki:ingest.
 allowed-tools: Read Edit Bash(llmwiki-preprocess *) Bash(llmwiki-decay *)
 ---
 
@@ -70,7 +70,7 @@ Read /tmp/llmwiki_lint.xml and report the following:
 - uncovered_files: Files matching entities but not yet ingested
 - contradictions: Count, page list, and urgency score of "needs review" flags (sorted by urgency descending). Urgency = days_since_flagged x impact_weight. Thresholds:
   - urgency > 360: Critical -- strongly recommend immediate resolution
-  - urgency > 180: High -- recommend running /llmwiki:update
+  - urgency > 180: High -- recommend running /llmwiki:ingest
   - urgency > 0: Normal -- report for awareness
 - decay_candidates: Pages with 0 references and not updated for 90+ days
   - days_since_update > 180: Strongly recommend demotion
@@ -90,11 +90,11 @@ If issues exist, propose corrective actions by category:
 - orphan: Confirm whether to add to Relations of other pages
 - broken_links: Propose creating the entity or fixing the link
 - stale: Propose re-collecting source files
-- uncovered: Propose re-running /llmwiki:update
-- contradictions: Propose running /llmwiki:update. Note that the /tmp/llmwiki_lint.xml output from lint can be used directly as input for the fix phase of update
-- cross_entity_contradictions: For each detected cross-entity contradiction, propose running /llmwiki:update
-- decay_candidates: Propose running /llmwiki:update
-- promotion_candidates: Propose running /llmwiki:update
+- uncovered: Propose re-running /llmwiki:ingest
+- contradictions: Propose running /llmwiki:ingest. Note that the /tmp/llmwiki_lint.xml output from lint can be used directly as input for the fix phase of ingest
+- cross_entity_contradictions: For each detected cross-entity contradiction, propose running /llmwiki:ingest
+- decay_candidates: Propose running /llmwiki:ingest
+- promotion_candidates: Propose running /llmwiki:ingest
 
 ### Step 5: Log Entry
 

@@ -18,12 +18,12 @@ if [ -d .llmwiki ]; then
   echo "entity_pages: ${entity_count}"
   echo "index: $(test -f .llmwiki/index.xml && echo 'exists' || echo 'missing')"
 else
-  echo "status: not_initialized (run /llmwiki:update first)"
+  echo "status: not_initialized (run /llmwiki:ingest first)"
 fi
 ```
 
 If Wiki State shows not_initialized, inform the user and stop.
-If index is missing, inform the user to run /llmwiki:update first.
+If index is missing, inform the user to run /llmwiki:ingest first.
 
 ## Arguments
 
@@ -48,7 +48,7 @@ Examples:
 Among the target entities:
 - Report pages with "needs review" flags
 - Report stale pages (including dormant pages)
-- If contradictions exist, recommend running /llmwiki:update beforehand
+- If contradictions exist, recommend running /llmwiki:ingest beforehand
 
 Proceed to generation only if the user instructs to continue.
 

@@ -18,12 +18,12 @@ if [ -d .llmwiki ]; then
   echo "entity_pages: ${entity_count}"
   echo "index: $(test -f .llmwiki/index.xml && echo 'exists' || echo 'missing')"
 else
-  echo "status: not_initialized (run /llmwiki:update first)"
+  echo "status: not_initialized (run /llmwiki:ingest first)"
 fi
 ```
 
 If Wiki State shows not_initialized, inform the user and stop.
-If index is missing, inform the user to run /llmwiki:update first.
+If index is missing, inform the user to run /llmwiki:ingest first.
 
 ## Arguments
 
@@ -50,9 +50,9 @@ If index is missing, inform the user to run /llmwiki:update first.
 2. Cite source entity-ids in `[[entity-id]]` format in the answer
 3. If the answer includes information with "needs review" flags, explicitly state this
 
-### Step 4: Feedback (optional)
+### Step 4: Feedback (automatic, no approval)
 
-If the following are discovered during the answering process, propose to the user and only update the wiki if the user approves. Exception: 4e (Saving Synthesized Answer) is saved without asking — see its section for details.
+Writes discovered during answering (4a-4e) are applied to the wiki automatically without asking the user. Report the applied items after the fact at the end of the answer.
 
 #### 4a: Adding Relationships
 
@@ -95,19 +95,15 @@ Write procedure:
 
 Discovery: A page with `status: dormant` was needed for the answer.
 
-Proposal: "This page is dormant but was used in the answer. Would you like to reactivate it to active?"
-
 Write procedure:
 1. Remove `status: dormant` from the page's frontmatter
 2. Remove `"status": "dormant"` from the corresponding entity in entities.json
 3. Append to Changelog: "YYYY-MM-DD: Reactivated to active (promotion due to re-reference in query)"
 4. Update frontmatter `updated` to today
 
-#### 4e: Saving Synthesized Answer to Syntheses (no approval required)
+#### 4e: Saving Synthesized Answer to Syntheses
 
 Condition: When the answer spans multiple entities with analysis/comparison that has value as a standalone page.
-
-Always save without asking for approval, then inform the user after the fact. This is an exception to the Step 4 approval rule.
 
 Write procedure:
 1. Save as `.llmwiki/syntheses/<kebab-case-theme>.md`

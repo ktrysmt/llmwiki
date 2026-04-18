@@ -1,11 +1,11 @@
 ---
-name: update
+name: ingest
 description: Run import, lint, and auto-fix as a single pipeline to keep .llmwiki/ in sync with source files. Use when the user wants to refresh the entire knowledge base end-to-end in one command.
 argument-hint: "[path]"
 allowed-tools: Read Edit Write Bash(llmwiki-makeindex *) Bash(llmwiki-preprocess *) Bash(llmwiki-decay *) Bash(mkdir *)
 ---
 
-# /llmwiki:update
+# /llmwiki:ingest
 
 Run import, lint, and fix as a single pipeline. Eliminates redundant preprocessing by running deterministic scripts once per boundary (before and after LLM ingestion).
 
@@ -58,11 +58,11 @@ If Input Validation shows ERROR, inform the user and stop.
 
 ## Arguments
 
-`/llmwiki:update [path]`
+`/llmwiki:ingest [path]`
 
 The `path` argument is optional. Resolution order for the input directory:
 
-1. Explicit argument: `/llmwiki:update <path>`
+1. Explicit argument: `/llmwiki:ingest <path>`
 2. Saved config: `.llmwiki/config.json` -> `input_dir`
 3. Default: project root (current working directory)
 
@@ -108,7 +108,9 @@ cat "${CLAUDE_SKILL_DIR}/../../shared/schema.md" 2>/dev/null || echo "ERROR: sch
 
 ## Phase 1: LLM Ingestion
 
-For each file in `new_files` and `updated_files`:
+Process `new_files` + `updated_files` in chunks of up to 5 per LLM turn to bound context usage. If a session cannot process all chunks, prioritize the most recent files (by source mtime) and report the remaining count.
+
+For each file in a chunk:
 
 1. Load file content with Read
 2. Determine `source_type` from the file path and content (primary / secondary / derived)
@@ -288,5 +290,5 @@ If already exists, merge only `input_dir`. Preserve existing keys (`exclude_patt
 Append to `.llmwiki/log.md`:
 
 ```
-## [YYYY-MM-DD] update | Processed <n> files, created <n>, updated <n>, auto-fixed <n>, user-fixed <n>, demoted <n>, promoted <n>, remaining <n>
+## [YYYY-MM-DD] ingest | Processed <n> files, created <n>, updated <n>, auto-fixed <n>, user-fixed <n>, demoted <n>, promoted <n>, remaining <n>
 ```

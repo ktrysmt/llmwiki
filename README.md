@@ -39,7 +39,7 @@ bin/                        # Executables auto-added to PATH by the plugin harne
 shared/
   schema.md                 # Wiki page template + merge rules (read by SKILL.md preprocess)
 skills/
-  update/                   # /llmwiki:update -- Full pipeline: import + lint + fix
+  ingest/                   # /llmwiki:ingest -- Full pipeline: import + lint + fix
     SKILL.md
   lint/                     # /llmwiki:lint -- Health check (read-only detection & reporting)
     SKILL.md
@@ -66,18 +66,18 @@ Running a skill generates `.llmwiki/` in the project directory:
 
 | Skill | Purpose | Writes |
 |---|---|---|
-| /llmwiki:update | Full pipeline: import + lint + fix | Automatic + requires approval |
+| /llmwiki:ingest | Full pipeline: import + lint + fix | Automatic + requires approval |
 | /llmwiki:lint | Health check (detection & reporting only) | None (read-only) |
-| /llmwiki:query | Query the wiki in natural language | Synthesis save (auto) + feedback (requires approval) |
+| /llmwiki:query | Query the wiki in natural language | Synthesis save + feedback (all auto) |
 | /llmwiki:docs | Generate documents by specifying a theme | None (external output only) |
 
 ## Usage
 
-### /llmwiki:update -- Full Pipeline
+### /llmwiki:ingest -- Full Pipeline
 
 ```
-/llmwiki:update              # scans the project root
-/llmwiki:update ~/work/dump  # scans an external directory
+/llmwiki:ingest              # scans the project root
+/llmwiki:ingest ~/work/dump  # scans an external directory
 ```
 
 Runs import, lint, and fix as a single pipeline. The only skill that modifies the wiki.
@@ -106,7 +106,7 @@ Read-only detection and reporting. Does not modify the wiki.
 
 Detects the following and proposes corrective actions:
 - Orphan pages, broken links, stale pages, uncovered files
-- Contradictions (count of "needs review" flags; guides to /llmwiki:update)
+- Contradictions (count of "needs review" flags; guides to /llmwiki:ingest)
 - Decay candidates (pages with 0 references and not updated for 90+ days)
 - Promotion candidates (dormant pages with references > 0)
 - Cross-entity contradictions, contradiction statistics, provenance gaps
@@ -119,7 +119,7 @@ Detects the following and proposes corrective actions:
 
 Ask questions in natural language against the knowledge accumulated in the wiki.
 Valuable synthesized answers are automatically saved to `.llmwiki/syntheses/` to accumulate knowledge.
-Relationships, new entities, contradictions, and dormant promotions discovered during answering are fed back to the wiki upon user approval.
+Relationships, new entities, contradictions, and dormant promotions discovered during answering are fed back to the wiki automatically (no approval prompt).
 
 ### /llmwiki:docs -- Document Generation
 
@@ -158,7 +158,7 @@ No additional skills or configuration are needed -- the flexibility comes from t
 
 ## Configuration
 
-Settings are stored in `.llmwiki/config.json` (created automatically on first `/llmwiki:update` run). Edit this file directly to customize behavior.
+Settings are stored in `.llmwiki/config.json` (created automatically on first `/llmwiki:ingest` run). Edit this file directly to customize behavior.
 
 ```json
 {
@@ -200,7 +200,7 @@ Patterns are applied after `.gitignore` filtering, so there is no need to duplic
 - Contradictory information is retained with both values dated and flagged. The LLM does not resolve them
 - Entity IDs use lowercase kebab-case; aliases include both Japanese and English
 - source_type trust order: primary > secondary > derived. Determined from both path and content
-- /llmwiki:update (genuine contradictions, decay demotions) and /llmwiki:query feedback require human approval
+- /llmwiki:ingest requires human approval only for genuine contradictions and decay demotions; /llmwiki:query feedback is auto-applied
 - All skill operations are recorded chronologically in `.llmwiki/log.md`
 
 ## `.llmwiki/` Management
@@ -214,7 +214,7 @@ Track `.llmwiki/` in git when humans run skills directly. This ensures:
 - Stable wiki state shared across team members
 - Rollback via `git checkout` / `git revert`
 - Reproducible `/llmwiki:docs` output pinned to a specific commit
-- Consistent `/llmwiki:update` resolution history
+- Consistent `/llmwiki:ingest` resolution history
 
 ### Pattern B: CI cache (for CI-only workflows)
 
@@ -257,7 +257,7 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 - Renamed `/llmwiki:make` to `/llmwiki:import` and `/llmwiki:metabolize` to `/llmwiki:fix` for clearer intent
 - `/llmwiki:lint` is now read-only — detection and reporting only
 - Moved decay demotion and dormant promotion from `/llmwiki:lint` into `/llmwiki:fix`, consolidating all approval-required writes into a single skill
-- Added `/llmwiki:update` — single-pipeline runner that chains import -> lint -> fix while sharing deterministic preprocessing across phases
+- Added `/llmwiki:ingest` — single-pipeline runner that chains import -> lint -> fix while sharing deterministic preprocessing across phases
 - `/llmwiki:query` synthesis save is now exempt from approval (saved automatically with after-the-fact reporting)
 - Added YAML frontmatter to every `SKILL.md` (`name`, `description`, `allowed-tools`, `argument-hint`); side-effecting skills set `disable-model-invocation: true` to prevent automatic invocation
 - v0.3.4: Removed `disable-model-invocation: true` from `fix`, `update`, `import`, and `docs` skills. The flag stripped the `llmwiki:` namespace prefix from plugin slash commands (anthropics/claude-code#22345), causing `/llmwiki:fix` to register as `/fix` and break manual invocation
@@ -266,8 +266,8 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 ### v0.4
 
 - Consolidated 6 skills into 4: removed `/llmwiki:import` and `/llmwiki:fix` as standalone skills
-- `/llmwiki:update` is now the single entry point for all wiki modifications (import + lint + fix pipeline)
-- `/llmwiki:lint` remains read-only (detection and reporting only); fix proposals now guide to `/llmwiki:update`
+- `/llmwiki:ingest` is now the single entry point for all wiki modifications (import + lint + fix pipeline)
+- `/llmwiki:lint` remains read-only (detection and reporting only); fix proposals now guide to `/llmwiki:ingest`
 - `/llmwiki:query` and `/llmwiki:docs` unchanged in behavior
 - `skills/import/` directory retained as shared resources (scripts, schema) used by other skills
 
@@ -276,3 +276,9 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 - Moved shared scripts out of `skills/import/scripts/` into top-level `bin/` (`llmwiki-preprocess`, `llmwiki-makeindex`, `llmwiki-decay`) so they are invoked via PATH rather than `${LLMWIKI_SCRIPTS}`. Fixes intermittent `/makeindex.py: No such file or directory` errors caused by env vars not propagating from SKILL.md `!` preprocess blocks into Bash tool calls
 - Moved `skills/import/llmwiki/schema.md` to top-level `shared/schema.md`
 - Removed the `skills/import/` directory (it was not a real skill; the folder predated the plugin's shared-resource conventions)
+
+### v0.6
+
+- Renamed `/llmwiki:update` to `/llmwiki:ingest` to align with `llmwiki-cli` naming
+- Phase 1 now chunks `new_files` + `updated_files` (up to 5 per LLM turn) to bound context usage
+- `/llmwiki:query` Step 4 feedback (4a-4d) is now auto-written without approval, matching the `4e` synthesis-save policy — reduces friction in the read-mostly query flow
