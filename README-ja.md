@@ -282,3 +282,7 @@ test/
 - `/llmwiki:update` を `/llmwiki:ingest` にリネーム。`llmwiki-cli` の命名に揃える
 - Phase 1 で `new_files` + `updated_files` を LLM ターンあたり最大 5 件にチャンク分割し、コンテキスト消費を抑制
 - `/llmwiki:query` Step 4 のフィードバック（4a-4d）を承認不要の自動書き込みに変更。`4e` のシンセシス保存と同じポリシーに統一し、読み取り中心の query フローでの摩擦を削減
+
+### v0.6.1
+
+- `/llmwiki:ingest` Phase 1 Step 1 で、`Read` ツールの約 25,000 トークン上限に到達した場合は `offset`/`limit` で全文をページングするよう指示を追加。部分読みからの要約を禁止し、長文のエビデンスレビュー文書を取り込む際の fact 欠落を防止

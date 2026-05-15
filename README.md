@@ -282,3 +282,7 @@ Choose Pattern A unless you have a dedicated CI pipeline that is the sole execut
 - Renamed `/llmwiki:update` to `/llmwiki:ingest` to align with `llmwiki-cli` naming
 - Phase 1 now chunks `new_files` + `updated_files` (up to 5 per LLM turn) to bound context usage
 - `/llmwiki:query` Step 4 feedback (4a-4d) is now auto-written without approval, matching the `4e` synthesis-save policy — reduces friction in the read-mostly query flow
+
+### v0.6.1
+
+- `/llmwiki:ingest` Phase 1 Step 1 now instructs to page through large source files with `Read` `offset`/`limit` when the tool's ~25,000-token cap is hit, instead of summarizing from a partial read. Prevents silent fact loss when ingesting long evidence-review documents

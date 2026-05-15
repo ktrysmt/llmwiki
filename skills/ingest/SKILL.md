@@ -112,7 +112,7 @@ Process `new_files` + `updated_files` in chunks of up to 5 per LLM turn to bound
 
 For each file in a chunk:
 
-1. Load file content with Read
+1. Load file content with Read. If Read fails with "File content exceeds maximum allowed tokens" (the tool caps at ~25,000 tokens per call), the file is too large for a single Read — page through it with `offset` and `limit` (e.g., 400-line windows) until the entire file has been covered. Do not summarize from a partial read; always read the full file before extracting facts
 2. Determine `source_type` from the file path and content (primary / secondary / derived)
 3. Extract new entities and relationships in addition to dictionary-matched entities (`known_entities`)
 4. If a wiki page already exists, update it following the merge rules in the Wiki Page Schema section below. Otherwise create a new page from the template
